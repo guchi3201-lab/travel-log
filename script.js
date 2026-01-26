@@ -40,4 +40,9 @@ function openForm(place) {
 function saveVisit() {
   alert(`${selectedPlace.name} に行った記録を保存しました！（仮）`);
 }
+// --- 地図表示（OpenStreetMap） ---
+const map = L.map("map").setView([35.681236, 139.767125], 5);
 
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap contributors"
+}).addTo(map);
