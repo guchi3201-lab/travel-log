@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>日本旅行ログ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  </script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>🗾 日本旅行ログ</h2>
+<input id="search" placeholder="観光地検索（例：太宰府）">
+
+<div id="map"></div>
+
+<div id="form" class="hidden">
+  <h3 id="placeName"></h3>
+  <textarea id="memo" placeholder="思い出メモ"></textarea>
+  <input type="file" id="photo" accept="image/*">
+  <button onclick="saveVisit()">行った！</button>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
