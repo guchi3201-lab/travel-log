@@ -5,38 +5,30 @@
   <title>日本旅行ログ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-  </script>
+  >
 
+  <!-- 自分のCSS -->
   <link rel="stylesheet" href="style.css">
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet/dist/leaflet.css"
-  <link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet/dist/leaflet.css"
-/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script></head>
-<body><div id="map"></div>
- style="height:60vh;"></div>
+</head>
 
-<h2>🗾 日本旅行ログ</h2>
-<input id="search" placeholder="観光地検索（例：太宰府）">
+<body>
+  <h2>🗾 日本旅行ログ</h2>
 
-<div id="map"></div>
+  <input id="search" placeholder="観光地検索（例：太宰府）">
 
-<div id="form" class="hidden">
-  <h3 id="placeName"></h3>
-  <textarea id="memo" placeholder="思い出メモ"></textarea>
-  <input type="file" id="photo" accept="image/*">
-  <button onclick="saveVisit()">行った！</button>
-</div>
+  <!-- 地図 -->
+  <div id="map"></div>
 
-<script src="script.js"></script>
-</body>
-</html>
+  <div id="form" class="hidden">
+    <h3 id="placeName"></h3>
+    <textarea id="memo" placeholder="思い出メモ"></textarea>
+    <input type="file" id="photo" accept="image/*">
+    <button onclick="saveVisit()">行った！</button>
+  </div>
+
+  <!-- Leaflet JS（必ず map の後） -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></
