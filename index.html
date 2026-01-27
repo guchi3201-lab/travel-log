@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ピンメモマップ</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>旅行ピンマップ</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
@@ -22,15 +23,16 @@ body {
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
-// ---------------- 地図 ----------------
+// ===== 地図 =====
 const map = L.map("map").setView([36.5, 138], 6);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 20
+  maxZoom: 18
 }).addTo(map);
 
-// ---------------- アイコン ----------------
+// ===== アイコン =====
 const icons = {
   blue: L.icon({
     iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/blue.png",
@@ -49,10 +51,9 @@ const icons = {
   })
 };
 
-// 色の順番
-const cycle = ["blue", "red", "yellow"];
+const colors = ["blue", "red", "yellow"];
 
-// ---------------- ピン追加 ----------------
+// ===== タップでピン =====
 map.on("click", e => {
   const marker = L.marker(e.latlng, {
     icon: icons.blue
@@ -61,11 +62,11 @@ map.on("click", e => {
   marker.colorIndex = 0;
 
   marker.on("click", () => {
-    marker.colorIndex = (marker.colorIndex + 1) % cycle.length;
-    const color = cycle[marker.colorIndex];
-    marker.setIcon(icons[color]);
+    marker.colorIndex = (marker.colorIndex + 1) % colors.length;
+    marker.setIcon(icons[colors[marker.colorIndex]]);
   });
 });
 </script>
+
 </body>
 </html>
