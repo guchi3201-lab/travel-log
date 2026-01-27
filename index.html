@@ -23,14 +23,14 @@
 
     #panel {
       position: absolute;
-      top: 12px;
+      top: 14px;
       left: 50%;
       transform: translateX(-50%);
       background: white;
-      padding: 14px 18px;
+      padding: 14px 20px;
       border-radius: 14px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      font-size: 17px;
+      font-size: 18px;
       z-index: 1000;
     }
   </style>
@@ -43,21 +43,23 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
+    // 🔴 日本をかなり近い状態で表示
     const map = L.map("map", {
       zoomControl: true,
       minZoom: 5,
-      maxZoom: 20
-    }).setView([36.5, 138], 9); // ← ここ重要
+      maxZoom: 21
+    }).setView([36.5, 138], 10); // ← さらに拡大
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 20,
+      maxZoom: 21,
       attribution: "© OpenStreetMap"
     }).addTo(map);
 
     const panel = document.getElementById("panel");
 
     map.on("click", function (e) {
-      const newZoom = Math.min(map.getZoom() + 4, 19); // ← ここ重要
+      // 🔥 タップ1回で一気に寄る
+      const newZoom = Math.min(map.getZoom() + 5, 20);
       map.setView(e.latlng, newZoom, { animate: true });
 
       L.marker(e.latlng).addTo(map);
