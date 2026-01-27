@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>旅行ピンマップ</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -13,8 +12,41 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
 #map {
   height: 100vh;
+}
+
+/* ===== ピン詳細 ===== */
+.popup {
+  width: 220px;
+}
+
+.popup textarea {
+  width: 100%;
+  height: 60px;
+  font-size: 14px;
+}
+
+.photos {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  margin: 5px 0;
+}
+
+.photos img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.popup button {
+  width: 100%;
+  margin-top: 5px;
+  padding: 6px;
+  font-size: 14px;
 }
 </style>
 </head>
@@ -53,19 +85,79 @@ const icons = {
 
 const colors = ["blue", "red", "yellow"];
 
-// ===== タップでピン =====
+// ===== タップでピン追加 =====
 map.on("click", e => {
   const marker = L.marker(e.latlng, {
     icon: icons.blue
   }).addTo(map);
 
   marker.colorIndex = 0;
+  marker.photos = [];
+  marker.comment = "";
 
+  // 色切り替え
   marker.on("click", () => {
     marker.colorIndex = (marker.colorIndex + 1) % colors.length;
     marker.setIcon(icons[colors[marker.colorIndex]]);
   });
+
+  // ポップアップ
+  marker.bindPopup(createPopup(marker));
 });
+
+// ===== ポップアップ作成 =====
+function createPopup(marker) {
+  const div = document.createElement("div");
+  div.className = "popup";
+
+  const textarea = document.createElement("textarea");
+  textarea.placeholder = "コメントを書く";
+  textarea.value = marker.comment;
+  textarea.oninput = () => marker.comment = textarea.value;
+
+  const photosDiv = document.createElement("div");
+  photosDiv.className = "photos";
+
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.multiple = true;
+
+  fileInput.onchange = () => {
+    const files = Array.from(fileInput.files).slice(0, 5 - marker.photos.length);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        marker.photos.push(e.target.result);
+        renderPhotos();
+      };
+      reader.readAsDataURL(file);
+    });
+    fileInput.value = "";
+  };
+
+  function renderPhotos() {
+    photosDiv.innerHTML = "";
+    marker.photos.forEach(src => {
+      const img = document.createElement("img");
+      img.src = src;
+      photosDiv.appendChild(img);
+    });
+  }
+
+  renderPhotos();
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "ピンを削除";
+  deleteBtn.onclick = () => map.removeLayer(marker);
+
+  div.appendChild(textarea);
+  div.appendChild(photosDiv);
+  div.appendChild(fileInput);
+  div.appendChild(deleteBtn);
+
+  return div;
+}
 </script>
 
 </body>
