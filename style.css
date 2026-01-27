@@ -1,48 +1,37 @@
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: system-ui, sans-serif;
 }
 
 header {
-  display: flex;
-  justify-content: space-between;
   padding: 10px;
   background: #2563eb;
   color: white;
+  text-align: center;
 }
 
 #map {
-  height: calc(100vh - 60px);
+  height: calc(100vh - 50px);
+}
+
+/* ポップアップ内 */
+textarea {
+  width: 100%;
+  height: 60px;
+  margin-bottom: 6px;
 }
 
 button {
-  padding: 6px 10px;
-}
-
-.hidden {
-  display: none;
-}
-
-/* モーダル */
-#modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-}
-
-.form {
-  background: white;
-  margin: 40px auto;
-  padding: 15px;
-  width: 90%;
-  max-width: 400px;
+  margin-top: 4px;
+  padding: 4px 8px;
 }
 
 /* 写真横スクロール */
 .photo-row {
   display: flex;
-  overflow-x: auto;
   gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 6px;
 }
 
 .photo {
@@ -50,7 +39,7 @@ button {
 }
 
 .photo img {
-  height: 80px;
+  height: 70px;
   border-radius: 6px;
 }
 
