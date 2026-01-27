@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>マップピンメモ</title>
+  <meta charset="UTF-8">
+  <title>Map Test</title>
 
   <!-- Leaflet CSS -->
   <link
@@ -10,19 +10,31 @@
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
 
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    #map {
+      height: 100%;
+    }
+  </style>
 </head>
 <body>
 
   <div id="map"></div>
 
-  <!-- 追加用ポップアップ -->
-  <div id="addBox" class="hidden">
-    <button id="addPinBtn">ここにピンを追加</button>
-  </div>
-
-  <!-- Leaflet JS -->
+  <!-- Leaflet JS（script.js より先！） -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="script.js"></script>
+
+  <script>
+    const map = L.map("map").setView([35.6812, 139.7671], 13);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(map);
+  </script>
+
 </body>
 </html>
