@@ -5,33 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Travel Log</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
 <header>
   <h1>Travel Log</h1>
-  <button id="addBtn">＋ 追加</button>
 </header>
 
 <div id="map"></div>
-
-<!-- フォーム -->
-<div id="modal" class="hidden">
-  <div class="form">
-    <h2 id="formTitle">観光地</h2>
-
-    <input id="nameInput" placeholder="名前">
-    <textarea id="memoInput" placeholder="メモ"></textarea>
-
-    <input type="file" id="photoInput" multiple accept="image/*">
-    <div id="photoPreview"></div>
-
-    <button id="saveBtn">保存</button>
-    <button id="cancelBtn">キャンセル</button>
-  </div>
-</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="script.js"></script>
