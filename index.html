@@ -1,226 +1,31 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>旅行ピンマップ</title>
+  <meta charset="UTF-8" />
+  <title>旅行ログマップ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
 
-<style>
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f5f5f5;
-}
-
-/* 検索バー */
-#searchBar {
-  margin: 10px;
-  display: flex;
-  gap: 6px;
-}
-
-#searchInput {
-  flex: 1;
-  font-size: 16px;
-  padding: 8px;
-}
-
-#searchBtn {
-  font-size: 16px;
-  padding: 8px 12px;
-}
-
-/* 地図（少し小さめ） */
-#map {
-  height: 70vh;
-  margin: 0 10px 10px;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* ポップアップ */
-.popup {
-  width: 220px;
-}
-
-.status {
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-
-.popup textarea {
-  width: 100%;
-  height: 60px;
-  font-size: 14px;
-}
-
-.photos {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  margin: 6px 0;
-}
-
-.photos img {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.popup button {
-  width: 100%;
-  padding: 6px;
-  font-size: 14px;
-}
-</style>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<!-- 検索 -->
-<div id="searchBar">
-  <input id="searchInput" placeholder="例：岡山市・太宰府">
-  <button id="searchBtn">検索</button>
-</div>
+  <!-- 検索バー -->
+  <div id="search-bar">
+    <input id="searchInput" type="text" placeholder="地名を検索（例：岡山市）">
+    <button id="searchBtn">検索</button>
+  </div>
 
-<!-- 地図 -->
-<div id="map"></div>
+  <!-- 地図 -->
+  <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
-// ===== 地図 =====
-const map = L.map("map").setView([36.5, 138], 6);
-
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 18,
-  minZoom: 5
-}).addTo(map);
-
-// ===== ピンアイコン（赤・黄のみ）=====
-const icons = {
-  red: L.icon({
-    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/red.png",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  }),
-  yellow: L.icon({
-    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/yellow.png",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  })
-};
-
-const states = [
-  { key: "red", text: "行った！" },
-  { key: "yellow", text: "行ってみたい！" }
-];
-
-// ===== マップタップでピン =====
-map.on("click", e => {
-  const marker = L.marker(e.latlng, {
-    icon: icons.red
-  }).addTo(map);
-
-  marker.stateIndex = 0;
-  marker.photos = [];
-
-  marker.on("click", () => {
-    marker.stateIndex = (marker.stateIndex + 1) % states.length;
-    const state = states[marker.stateIndex];
-    marker.setIcon(icons[state.key]);
-
-    marker.bindTooltip(state.text, {
-      direction: "top",
-      offset: [0, -20]
-    }).openTooltip();
-  });
-
-  marker.bindPopup(createPopup(marker));
-});
-
-// ===== ポップアップ =====
-function createPopup(marker) {
-  const div = document.createElement("div");
-  div.className = "popup";
-
-  const status = document.createElement("div");
-  status.className = "status";
-  status.textContent = "状態：行った！";
-
-  const textarea = document.createElement("textarea");
-  textarea.placeholder = "コメントを書く";
-
-  const photosDiv = document.createElement("div");
-  photosDiv.className = "photos";
-
-  function renderPhotos() {
-    photosDiv.innerHTML = "";
-    marker.photos.forEach(src => {
-      const img = document.createElement("img");
-      img.src = src;
-      photosDiv.appendChild(img);
-    });
-  }
-
-  const fileInput = document.createElement("input");
-  fileInput.type = "file";
-  fileInput.accept = "image/*";
-  fileInput.multiple = true;
-
-  fileInput.onchange = () => {
-    const files = Array.from(fileInput.files).slice(0, 5 - marker.photos.length);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        marker.photos.push(e.target.result);
-        renderPhotos();
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.textContent = "ピンを削除";
-  deleteBtn.onclick = () => map.removeLayer(marker);
-
-  marker.on("click", () => {
-    status.textContent = "状態：" + states[marker.stateIndex].text;
-  });
-
-  div.appendChild(status);
-  div.appendChild(textarea);
-  div.appendChild(photosDiv);
-  div.appendChild(fileInput);
-  div.appendChild(deleteBtn);
-
-  return div;
-}
-
-// ===== 検索 =====
-document.getElementById("searchBtn").onclick = search;
-document.getElementById("searchInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") search();
-});
-
-function search() {
-  const q = document.getElementById("searchInput").value;
-  if (!q) return;
-
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=jp`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.length > 0) {
-        map.setView([data[0].lat, data[0].lon], 14);
-      } else {
-        alert("見つかりませんでした");
-      }
-    });
-}
-</script>
-
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
