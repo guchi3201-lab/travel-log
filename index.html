@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <title>旅行ログ</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- Leaflet -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
 <style>
 html, body {
@@ -25,33 +29,10 @@ html, body {
 
 .panel {
   flex: 3;
-  padding: 10px;
+  padding: 12px;
   border-top: 1px solid #ddd;
   background: #fff;
   font-size: 15px;
-}
-
-.panel h2 {
-  font-size: 16px;
-  margin: 0 0 8px;
-}
-
-.photos {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  margin: 6px 0;
-}
-
-.photos img {
-  height: 80px;
-  border-radius: 6px;
-}
-
-button {
-  font-size: 15px;
-  padding: 6px 10px;
-  margin-right: 6px;
 }
 </style>
 </head>
@@ -59,16 +40,16 @@ button {
 <body>
 <div class="container">
   <div id="map"></div>
-
   <div class="panel" id="panel">
-    <h2>使い方</h2>
     地図をタップするとピンを追加できます
   </div>
 </div>
 
+<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+/* 地図作成（日本） */
 const map = L.map("map", {
   center: [36, 138],
   zoom: 5,
@@ -76,67 +57,37 @@ const map = L.map("map", {
   maxZoom: 18
 });
 
+/* 地図表示 */
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
 }).addTo(map);
 
+/* サイズ確定（超重要） */
+map.whenReady(() => {
+  map.invalidateSize();
+});
+
 const panel = document.getElementById("panel");
 
-// 青・赤ピン
-const blueIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25,41],
-  iconAnchor: [12,41]
-});
+/* タップで必ずピンを出す */
+map.on("click", function (e) {
+  const marker = L.marker(e.latlng).addTo(map);
 
-const redIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25,41],
-  iconAnchor: [12,41]
-});
-
-map.on("click", e => {
-  const marker = L.marker(e.latlng, { icon: blueIcon }).addTo(map);
-  openEditor(marker);
-});
-
-function openEditor(marker) {
   panel.innerHTML = `
-    <h2>場所メモ</h2>
-    <textarea id="comment" rows="2" style="width:100%" placeholder="コメント"></textarea>
-    <input type="file" id="photos" accept="image/*" multiple>
-    <div class="photos" id="photoList"></div>
-    <br>
-    <button id="done">行った！</button>
-    <button id="delete">削除</button>
+    <strong>ピンを追加しました</strong><br>
+    緯度：${e.latlng.lat.toFixed(5)}<br>
+    経度：${e.latlng.lng.toFixed(5)}
   `;
 
-  const photoInput = document.getElementById("photos");
-  const photoList = document.getElementById("photoList");
-
-  photoInput.onchange = () => {
-    photoList.innerHTML = "";
-    [...photoInput.files].slice(0,5).forEach(file => {
-      const img = document.createElement("img");
-      img.src = URL.createObjectURL(file);
-      photoList.appendChild(img);
-    });
-  };
-
-  document.getElementById("done").onclick = () => {
-    marker.setIcon(redIcon);
-    panel.innerHTML = "<h2>保存しました</h2>";
-  };
-
-  document.getElementById("delete").onclick = () => {
-    map.removeLayer(marker);
-    panel.innerHTML = "<h2>削除しました</h2>";
-  };
-
-  marker.on("click", () => openEditor(marker));
-}
+  marker.on("click", () => {
+    panel.innerHTML = `
+      <strong>この場所</strong><br>
+      緯度：${e.latlng.lat.toFixed(5)}<br>
+      経度：${e.latlng.lng.toFixed(5)}
+    `;
+  });
+});
 </script>
+
 </body>
 </html>
