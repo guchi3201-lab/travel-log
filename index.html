@@ -13,13 +13,44 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* 検索バー */
+#searchBox {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: white;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+#searchInput {
+  font-size: 16px;
+  padding: 6px;
+  width: 200px;
+}
+
+#searchBtn {
+  font-size: 16px;
+  padding: 6px 10px;
+}
+
 #map {
   height: 100vh;
 }
 
-/* ピン詳細UI */
+/* ポップアップ */
 .popup {
   width: 240px;
+}
+
+.status {
+  font-weight: bold;
+  margin-bottom: 6px;
 }
 
 .popup textarea {
@@ -52,22 +83,27 @@ body {
 </head>
 
 <body>
+
+<!-- 検索 -->
+<div id="searchBox">
+  <input id="searchInput" type="text" placeholder="例：岡山市・太宰府">
+  <button id="searchBtn">検索</button>
+</div>
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// ===== 地図（日本固定）=====
-const map = L.map("map", {
-  zoomControl: true
-}).setView([36.5, 138], 6);
+// ===== 地図 =====
+const map = L.map("map").setView([36.5, 138], 6);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
   minZoom: 5
 }).addTo(map);
 
-// ===== ピンアイコン =====
+// ===== ピン =====
 const icons = {
   blue: L.icon({
     iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/blue.png",
@@ -86,36 +122,46 @@ const icons = {
   })
 };
 
-const colors = ["blue", "red", "yellow"];
+const states = [
+  { key: "blue", text: "未設定" },
+  { key: "red", text: "行った！" },
+  { key: "yellow", text: "行ってみたい！" }
+];
 
-// ===== マップタップで即ピン =====
+// ===== タップでピン =====
 map.on("click", e => {
   const marker = L.marker(e.latlng, {
     icon: icons.blue
   }).addTo(map);
 
-  marker.colorIndex = 0;
+  marker.stateIndex = 0;
   marker.photos = [];
-  marker.comment = "";
 
-  // ピンタップで色変更
   marker.on("click", () => {
-    marker.colorIndex = (marker.colorIndex + 1) % colors.length;
-    marker.setIcon(icons[colors[marker.colorIndex]]);
+    marker.stateIndex = (marker.stateIndex + 1) % states.length;
+    const state = states[marker.stateIndex];
+    marker.setIcon(icons[state.key]);
+
+    marker.bindTooltip(state.text, {
+      direction: "top",
+      offset: [0, -20]
+    }).openTooltip();
   });
 
   marker.bindPopup(createPopup(marker));
 });
 
-// ===== ピン詳細 =====
+// ===== ポップアップ =====
 function createPopup(marker) {
   const div = document.createElement("div");
   div.className = "popup";
 
+  const status = document.createElement("div");
+  status.className = "status";
+  status.textContent = "状態：未設定";
+
   const textarea = document.createElement("textarea");
   textarea.placeholder = "コメントを書く";
-  textarea.value = marker.comment;
-  textarea.oninput = () => marker.comment = textarea.value;
 
   const photosDiv = document.createElement("div");
   photosDiv.className = "photos";
@@ -144,21 +190,46 @@ function createPopup(marker) {
       };
       reader.readAsDataURL(file);
     });
-    fileInput.value = "";
   };
 
   const deleteBtn = document.createElement("button");
   deleteBtn.textContent = "ピンを削除";
   deleteBtn.onclick = () => map.removeLayer(marker);
 
-  renderPhotos();
+  marker.on("click", () => {
+    status.textContent = "状態：" + states[marker.stateIndex].text;
+  });
 
+  div.appendChild(status);
   div.appendChild(textarea);
   div.appendChild(photosDiv);
   div.appendChild(fileInput);
   div.appendChild(deleteBtn);
 
   return div;
+}
+
+// ===== 検索機能（全国）=====
+document.getElementById("searchBtn").onclick = search;
+document.getElementById("searchInput").addEventListener("keypress", e => {
+  if (e.key === "Enter") search();
+});
+
+function search() {
+  const q = document.getElementById("searchInput").value;
+  if (!q) return;
+
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=jp`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.length > 0) {
+        const lat = data[0].lat;
+        const lon = data[0].lon;
+        map.setView([lat, lon], 14);
+      } else {
+        alert("見つかりませんでした");
+      }
+    });
 }
 </script>
 
