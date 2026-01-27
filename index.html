@@ -13,37 +13,43 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* 検索バー */
-#searchBox {
-  position: fixed;
-  top: 10px;
+#map {
+  height: 100vh;
+}
+
+/* ===== 検索バー（地図の上） ===== */
+#searchBar {
+  position: absolute;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
   background: white;
-  padding: 6px;
-  border-radius: 8px;
   display: flex;
   gap: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  padding: 6px 8px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
 #searchInput {
   font-size: 16px;
   padding: 6px;
-  width: 200px;
+  width: 220px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 
 #searchBtn {
   font-size: 16px;
   padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #4285f4;
+  color: white;
 }
 
-#map {
-  height: 100vh;
-}
-
-/* ポップアップ */
+/* ===== ポップアップ ===== */
 .popup {
   width: 240px;
 }
@@ -84,8 +90,8 @@ body {
 
 <body>
 
-<!-- 検索 -->
-<div id="searchBox">
+<!-- 検索バー -->
+<div id="searchBar">
   <input id="searchInput" type="text" placeholder="例：岡山市・太宰府">
   <button id="searchBtn">検索</button>
 </div>
@@ -128,7 +134,7 @@ const states = [
   { key: "yellow", text: "行ってみたい！" }
 ];
 
-// ===== タップでピン =====
+// ===== マップタップで即ピン =====
 map.on("click", e => {
   const marker = L.marker(e.latlng, {
     icon: icons.blue
@@ -209,7 +215,7 @@ function createPopup(marker) {
   return div;
 }
 
-// ===== 検索機能（全国）=====
+// ===== 検索（全国対応）=====
 document.getElementById("searchBtn").onclick = search;
 document.getElementById("searchInput").addEventListener("keypress", e => {
   if (e.key === "Enter") search();
@@ -223,9 +229,7 @@ function search() {
     .then(res => res.json())
     .then(data => {
       if (data.length > 0) {
-        const lat = data[0].lat;
-        const lon = data[0].lon;
-        map.setView([lat, lon], 14);
+        map.setView([data[0].lat, data[0].lon], 14);
       } else {
         alert("見つかりませんでした");
       }
