@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>旅行ログ（日本）</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ピンメモマップ</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
@@ -12,158 +12,60 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
-
-/* 検索 */
-#searchBox {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  background: white;
-  padding: 6px;
-  border-radius: 8px;
-  display: flex;
-  gap: 6px;
-}
-
-#searchBox input {
-  font-size: 16px;
-  padding: 4px;
-  width: 180px;
-}
-
-#searchBox button {
-  font-size: 16px;
-}
-
-/* 地図 */
 #map {
-  height: 65vh;
-}
-
-/* 下パネル */
-#panel {
-  height: 35vh;
-  border-top: 1px solid #ccc;
-  padding: 10px;
-}
-
-textarea {
-  width: 100%;
-  height: 60px;
-  font-size: 16px;
-}
-
-button {
-  width: 100%;
-  font-size: 16px;
-  margin-top: 6px;
+  height: 100vh;
 }
 </style>
 </head>
 
 <body>
-
-<div id="searchBox">
-  <input id="searchInput" placeholder="例：太宰府天満宮">
-  <button onclick="searchPlace()">検索</button>
-</div>
-
 <div id="map"></div>
 
-<div id="panel">
-  <b id="panelTitle">📍 ピンを選択</b>
-  <textarea id="comment" placeholder="コメントを書く"></textarea>
-  <button onclick="markDone()">行ったにする</button>
-  <button onclick="deletePin()">ピン削除</button>
-</div>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-// ---------- 地図 ----------
-const map = L.map("map", {
-  minZoom: 5,
-  maxZoom: 20
-}).setView([36.5, 138], 9);
+// ---------------- 地図 ----------------
+const map = L.map("map").setView([36.5, 138], 6);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 20
 }).addTo(map);
 
-// ---------- ピンアイコン ----------
-const wantIcon = L.icon({
-  iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/yellow.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32]
-});
+// ---------------- アイコン ----------------
+const icons = {
+  blue: L.icon({
+    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/blue.png",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
+  }),
+  red: L.icon({
+    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/red.png",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
+  }),
+  yellow: L.icon({
+    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/yellow.png",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
+  })
+};
 
-const doneIcon = L.icon({
-  iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/red.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32]
-});
+// 色の順番
+const cycle = ["blue", "red", "yellow"];
 
-// ---------- 状態 ----------
-let selectedLatLng = null;
-let currentMarker = null;
-
-// ---------- 地図タップでピン ----------
+// ---------------- ピン追加 ----------------
 map.on("click", e => {
-  const marker = L.marker(e.latlng, { icon: wantIcon }).addTo(map);
-  marker.status = "want";
-  marker.comment = "";
+  const marker = L.marker(e.latlng, {
+    icon: icons.blue
+  }).addTo(map);
 
-  marker.on("click", () => openPanel(marker));
-  openPanel(marker);
+  marker.colorIndex = 0;
+
+  marker.on("click", () => {
+    marker.colorIndex = (marker.colorIndex + 1) % cycle.length;
+    const color = cycle[marker.colorIndex];
+    marker.setIcon(icons[color]);
+  });
 });
-
-// ---------- パネル ----------
-function openPanel(marker) {
-  currentMarker = marker;
-  document.getElementById("panelTitle").textContent =
-    marker.status === "want" ? "🟡 行きたい場所" : "🔴 行った場所";
-  document.getElementById("comment").value = marker.comment;
-}
-
-document.getElementById("comment").addEventListener("input", e => {
-  if (currentMarker) {
-    currentMarker.comment = e.target.value;
-  }
-});
-
-function markDone() {
-  if (!currentMarker) return;
-  currentMarker.setIcon(doneIcon);
-  currentMarker.status = "done";
-  openPanel(currentMarker);
-}
-
-function deletePin() {
-  if (!currentMarker) return;
-  map.removeLayer(currentMarker);
-  currentMarker = null;
-  document.getElementById("comment").value = "";
-  document.getElementById("panelTitle").textContent = "📍 ピンを選択";
-}
-
-// ---------- 検索 ----------
-function searchPlace() {
-  const q = document.getElementById("searchInput").value;
-  if (!q) return;
-
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + " 日本")}`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.length === 0) {
-        alert("見つかりません");
-        return;
-      }
-      map.setView([data[0].lat, data[0].lon], 16);
-    });
-}
 </script>
-
 </body>
 </html>
