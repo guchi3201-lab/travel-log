@@ -3,13 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スマホ用ピン地図</title>
 
-<title>ピン付き地図</title>
-
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
   body {
@@ -17,13 +13,11 @@
     font-family: sans-serif;
   }
 
-  /* 地図は少し小さめ */
   #map {
-    height: 70vh;
-    width: 100%;
+    height: 65vh;
   }
 
-  .form {
+  .panel {
     padding: 10px;
     background: #f5f5f5;
   }
@@ -33,6 +27,23 @@
     margin-top: 6px;
     font-size: 16px;
   }
+
+  /* 下から出る詳細パネル */
+  .detail {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    width: 100%;
+    background: white;
+    padding: 15px;
+    border-top: 2px solid #ccc;
+    transition: 0.3s;
+    z-index: 1000;
+  }
+
+  .detail.show {
+    bottom: 0;
+  }
 </style>
 </head>
 
@@ -40,66 +51,80 @@
 
 <div id="map"></div>
 
-<div class="form">
-  <input type="text" id="comment" placeholder="コメントを書く">
+<div class="panel">
+  <textarea id="comment" placeholder="コメントを書く"></textarea>
   <input type="file" id="photo">
-  <button onclick="addPin()">この場所にピンを追加</button>
+  <button onclick="addPin()">ピンを追加</button>
+</div>
+
+<div id="detail" class="detail">
+  <p id="detailText"></p>
+  <button onclick="deleteComment()">🗑 コメント削除</button>
+  <button onclick="deletePin()">❌ ピン削除</button>
+  <button onclick="closeDetail()">閉じる</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  // 地図作成（かなり拡大した状態）
-  const map = L.map('map').setView(
-    [33.30001, 130.51506],
-    18   // ← ここがズーム強化ポイント（3回ズーム相当）
-  );
+  const map = L.map('map').setView([33.43574, 130.58161], 17);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 20
   }).addTo(map);
 
   let selectedLatLng = null;
+  let currentMarker = null;
 
-  // 地図タップで位置選択
-  map.on('click', function(e) {
+  map.on('click', e => {
     selectedLatLng = e.latlng;
-    alert(`📍 場所を選択\n緯度 ${e.latlng.lat.toFixed(5)}\n経度 ${e.latlng.lng.toFixed(5)}`);
+    alert("場所を選択したよ");
   });
 
   function addPin() {
     if (!selectedLatLng) {
-      alert("先に地図をタップして！");
+      alert("地図をタップして場所を選んで！");
       return;
     }
 
     const comment = document.getElementById("comment").value;
     const photoInput = document.getElementById("photo");
 
-    let popupContent = `<b>${comment || "コメントなし"}</b><br>`;
-
-    if (photoInput.files.length > 0) {
-      const imgURL = URL.createObjectURL(photoInput.files[0]);
-      popupContent += `<img src="${imgURL}" width="150"><br>`;
-    }
-
-    popupContent += `<button onclick="removePin(this)">🗑 ピン削除</button>`;
-
     const marker = L.marker(selectedLatLng).addTo(map);
-    marker.bindPopup(popupContent);
+    marker.comment = comment;
+    marker.photo = photoInput.files[0] || null;
 
-    marker.on('popupopen', function() {
-      window.currentMarker = marker;
-    });
+    marker.on('click', () => openDetail(marker));
 
-    // 入力リセット
     document.getElementById("comment").value = "";
     document.getElementById("photo").value = "";
     selectedLatLng = null;
   }
 
-  function removePin(button) {
-    map.removeLayer(window.currentMarker);
+  function openDetail(marker) {
+    currentMarker = marker;
+    let html = `<b>${marker.comment || "コメントなし"}</b><br>`;
+
+    if (marker.photo) {
+      html += `<img src="${URL.createObjectURL(marker.photo)}" width="100%">`;
+    }
+
+    document.getElementById("detailText").innerHTML = html;
+    document.getElementById("detail").classList.add("show");
+  }
+
+  function closeDetail() {
+    document.getElementById("detail").classList.remove("show");
+  }
+
+  function deletePin() {
+    map.removeLayer(currentMarker);
+    closeDetail();
+  }
+
+  function deleteComment() {
+    currentMarker.comment = "";
+    document.getElementById("detailText").innerHTML = "<b>コメントなし</b>";
   }
 </script>
 
