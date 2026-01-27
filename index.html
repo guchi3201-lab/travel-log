@@ -11,47 +11,53 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
+/* 地図は少し小さく */
 #map {
-  height: 100vh;
+  height: 70vh;
   width: 100vw;
 }
 
-/* 編集パネル */
+/* 編集エリアは常に表示 */
 #editor {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  height: 30vh;
+  padding: 10px;
+  box-sizing: border-box;
+  border-top: 1px solid #ccc;
   background: #fff;
-  padding: 14px;
-  box-shadow: 0 -4px 10px rgba(0,0,0,0.2);
-  display: none;
-  z-index: 1000;
+  font-size: 16px;
 }
 
-#editor textarea {
-  width: 100%;
-  height: 60px;
+#editor h3 {
+  margin: 4px 0;
   font-size: 16px;
 }
 
 .photos {
   display: flex;
-  overflow-x: auto;
   gap: 8px;
-  margin: 8px 0;
+  overflow-x: auto;
+  margin-bottom: 6px;
 }
 
 .photos img {
-  height: 80px;
+  height: 70px;
   border-radius: 6px;
+}
+
+textarea {
+  width: 100%;
+  height: 50px;
+  font-size: 16px;
 }
 
 button {
   font-size: 16px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   margin-right: 8px;
 }
 </style>
@@ -62,12 +68,17 @@ button {
 <div id="map"></div>
 
 <div id="editor">
+  <h3>📍 ピンを選択して編集</h3>
+
   <div class="photos" id="photoList"></div>
   <input type="file" id="photoInput" accept="image/*" multiple>
+
   <textarea id="comment" placeholder="コメントを書く"></textarea>
-  <br><br>
-  <button id="saveBtn">保存</button>
-  <button id="deleteBtn">削除</button>
+
+  <div style="margin-top:6px;">
+    <button id="saveBtn">保存</button>
+    <button id="deleteBtn">削除</button>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -84,9 +95,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 let currentMarker = null;
-let markerData = new Map();
+const markerData = new Map();
 
-const editor = document.getElementById("editor");
 const photoList = document.getElementById("photoList");
 const photoInput = document.getElementById("photoInput");
 const commentInput = document.getElementById("comment");
@@ -94,28 +104,35 @@ const commentInput = document.getElementById("comment");
 map.on("click", e => {
   const marker = L.marker(e.latlng).addTo(map);
   markerData.set(marker, { photos: [], comment: "" });
+
+  marker.on("click", () => openEditor(marker));
   openEditor(marker);
 });
 
 function openEditor(marker) {
   currentMarker = marker;
-  editor.style.display = "block";
   renderEditor();
 }
 
 function renderEditor() {
+  if (!currentMarker) return;
+
   const data = markerData.get(currentMarker);
   photoList.innerHTML = "";
+
   data.photos.forEach(src => {
     const img = document.createElement("img");
     img.src = src;
     photoList.appendChild(img);
   });
+
   commentInput.value = data.comment;
 }
 
 photoInput.addEventListener("change", () => {
+  if (!currentMarker) return;
   const data = markerData.get(currentMarker);
+
   [...photoInput.files].slice(0, 5 - data.photos.length).forEach(file => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -124,21 +141,24 @@ photoInput.addEventListener("change", () => {
     };
     reader.readAsDataURL(file);
   });
+
   photoInput.value = "";
 });
 
 document.getElementById("saveBtn").onclick = () => {
-  const data = markerData.get(currentMarker);
-  data.comment = commentInput.value;
-  editor.style.display = "none";
+  if (!currentMarker) return;
+  markerData.get(currentMarker).comment = commentInput.value;
 };
 
 document.getElementById("deleteBtn").onclick = () => {
+  if (!currentMarker) return;
   map.removeLayer(currentMarker);
   markerData.delete(currentMarker);
-  editor.style.display = "none";
+  currentMarker = null;
+  photoList.innerHTML = "";
+  commentInput.value = "";
 };
-
 </script>
+
 </body>
 </html>
