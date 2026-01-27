@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Map Test</title>
+  <title>Travel Log</title>
 
   <link
     rel="stylesheet"
@@ -17,21 +17,39 @@
     #map {
       height: 100%;
     }
+
+    .info {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: white;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
+<div class="info" id="info">地図をタップしてください</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  alert("JSは動いてる");
-
   const map = L.map("map").setView([35, 135], 5);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap"
   }).addTo(map);
+
+  const info = document.getElementById("info");
+
+  map.on("click", function (e) {
+    const lat = e.latlng.lat.toFixed(5);
+    const lng = e.latlng.lng.toFixed(5);
+    info.textContent = `緯度: ${lat}, 経度: ${lng}`;
+  });
 </script>
 
 </body>
