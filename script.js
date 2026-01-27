@@ -43,98 +43,148 @@ worldHeritage.forEach(([name,lat,lng])=>{
 
 // ================= 自作スポット =================
 let spots = JSON.parse(localStorage.getItem("spots") || "[]");
-let editingId = null;
-let photos = [];
+
+spots.forEach(spot=>{
+  const marker = L.marker([spot.lat,spot.lng]).addTo(map);
+
+  let html = `<b>${spot.name}</b><br>${spot.memo}<br>`;
+  html += `<div class="photo-row">`;
+  spot.photos.forEach(p => {
+    html += `<img src="${p}" height="70">`;
+  });
+  html += `</div>
+    <button onclick="editSpot(${spot.id})">編集</button>
+    <button onclick="deleteSpot(${spot.id})">削除</button>`;
+
+  marker.bindPopup(html);
+});
+
+// ================= 追加モード =================
+let addMode = false;
+let tempMarker = null;
 let selectedLatLng = null;
 
 // UI
 const modal = document.getElementById("modal");
-addBtn.onclick = () => modal.classList.remove("hidden");
-cancelBtn.onclick = () => modal.classList.add("hidden");
+const addBtn = document.getElementById("addBtn");
+const cancelBtn = document.getElementById("cancelBtn");
+const saveBtn = document.getElementById("saveBtn");
 
-map.on("click",e=>{
-  if(!modal.classList.contains("hidden")){
-    selectedLatLng = e.latlng;
-    alert("位置を選択しました");
-  }
+addBtn.onclick = () => {
+  addMode = true;
+  alert("地図をタップして追加したい場所を選んでください");
+};
+
+// 地図タップ
+map.on("click", e => {
+  if (!addMode) return;
+
+  selectedLatLng = e.latlng;
+
+  if (tempMarker) map.removeLayer(tempMarker);
+
+  tempMarker = L.marker(e.latlng).addTo(map);
+  tempMarker.bindPopup(`
+    <b>この場所を追加しますか？</b><br>
+    <button onclick="openAddForm()">この場所を追加</button>
+  `).openPopup();
 });
 
-// 写真
-photoInput.onchange = ()=>{
-  for(const file of photoInput.files){
-    if(photos.length>=5) return alert("写真は5枚まで");
+window.openAddForm = () => {
+  addMode = false;
+  modal.classList.remove("hidden");
+};
+
+// ================= 写真 =================
+let photos = [];
+photoInput.onchange = () => {
+  for (const file of photoInput.files) {
+    if (photos.length >= 5) {
+      alert("写真は5枚まで");
+      return;
+    }
     const r = new FileReader();
-    r.onload=e=>{
+    r.onload = e => {
       photos.push(e.target.result);
       renderPhotos();
     };
     r.readAsDataURL(file);
   }
+  photoInput.value = "";
 };
 
-function renderPhotos(){
-  photoPreview.innerHTML="";
-  const row=document.createElement("div");
-  row.className="photo-row";
+function renderPhotos() {
+  photoPreview.innerHTML = "";
+  const row = document.createElement("div");
+  row.className = "photo-row";
+
   photos.forEach((p,i)=>{
-    row.innerHTML+=`
+    row.innerHTML += `
       <div class="photo">
         <img src="${p}">
         <button onclick="removePhoto(${i})">×</button>
-      </div>`;
+      </div>
+    `;
   });
+
   photoPreview.appendChild(row);
 }
-window.removePhoto=i=>{photos.splice(i,1);renderPhotos();};
 
-// 保存
-saveBtn.onclick=()=>{
-  const spot={
-    id: editingId || Date.now(),
-    name:nameInput.value,
-    memo:memoInput.value,
-    lat:selectedLatLng.lat,
-    lng:selectedLatLng.lng,
+window.removePhoto = i => {
+  photos.splice(i,1);
+  renderPhotos();
+};
+
+// ================= 保存・キャンセル =================
+cancelBtn.onclick = () => {
+  modal.classList.add("hidden");
+  photos = [];
+  photoPreview.innerHTML = "";
+  selectedLatLng = null;
+
+  if (tempMarker) {
+    map.removeLayer(tempMarker);
+    tempMarker = null;
+  }
+};
+
+saveBtn.onclick = () => {
+  if (!selectedLatLng) {
+    alert("地図で場所を選択してください");
+    return;
+  }
+
+  const spot = {
+    id: Date.now(),
+    name: nameInput.value,
+    memo: memoInput.value,
+    lat: selectedLatLng.lat,
+    lng: selectedLatLng.lng,
     photos
   };
 
-  if(editingId){
-    spots=spots.map(s=>s.id===editingId?spot:s);
-  }else{
-    spots.push(spot);
-  }
+  spots.push(spot);
+  localStorage.setItem("spots", JSON.stringify(spots));
 
-  localStorage.setItem("spots",JSON.stringify(spots));
+  if (tempMarker) map.removeLayer(tempMarker);
+
   location.reload();
 };
 
-// 表示
-spots.forEach(spot=>{
-  const marker=L.marker([spot.lat,spot.lng]).addTo(map);
-  let html=`<b>${spot.name}</b><br>${spot.memo}<br>`;
-  html+=`<div class="photo-row">`;
-  spot.photos.forEach(p=>html+=`<img src="${p}" height="60">`);
-  html+=`</div>
-    <button onclick="editSpot(${spot.id})">編集</button>
-    <button onclick="deleteSpot(${spot.id})">削除</button>`;
-  marker.bindPopup(html);
-});
-
-window.deleteSpot=id=>{
-  if(confirm("削除する？")){
-    spots=spots.filter(s=>s.id!==id);
-    localStorage.setItem("spots",JSON.stringify(spots));
-    location.reload();
-  }
+// ================= 編集・削除 =================
+window.deleteSpot = id => {
+  if (!confirm("削除しますか？")) return;
+  spots = spots.filter(s => s.id !== id);
+  localStorage.setItem("spots", JSON.stringify(spots));
+  location.reload();
 };
 
-window.editSpot=id=>{
-  const s=spots.find(x=>x.id===id);
-  editingId=id;
-  nameInput.value=s.name;
-  memoInput.value=s.memo;
-  photos=[...s.photos];
-  selectedLatLng={lat:s.lat,lng:s.lng};
+window.editSpot = id => {
+  const s = spots.find(x => x.id === id);
+  selectedLatLng = { lat: s.lat, lng: s.lng };
+  nameInput.value = s.name;
+  memoInput.value = s.memo;
+  photos = [...s.photos];
   renderPhotos();
   modal.classList.remove("hidden");
 };
