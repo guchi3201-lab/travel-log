@@ -1,65 +1,38 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>旅行ログ（日本）</title>
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<title>ピン付き地図</title>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
 <style>
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+  body {
+    margin: 0;
+    font-family: sans-serif;
+  }
 
-/* 地図は少し小さく */
-#map {
-  height: 70vh;
-  width: 100vw;
-}
+  /* 地図は少し小さめ */
+  #map {
+    height: 70vh;
+    width: 100%;
+  }
 
-/* 編集エリアは常に表示 */
-#editor {
-  height: 30vh;
-  padding: 10px;
-  box-sizing: border-box;
-  border-top: 1px solid #ccc;
-  background: #fff;
-  font-size: 16px;
-}
+  .form {
+    padding: 10px;
+    background: #f5f5f5;
+  }
 
-#editor h3 {
-  margin: 4px 0;
-  font-size: 16px;
-}
-
-.photos {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  margin-bottom: 6px;
-}
-
-.photos img {
-  height: 70px;
-  border-radius: 6px;
-}
-
-textarea {
-  width: 100%;
-  height: 50px;
-  font-size: 16px;
-}
-
-button {
-  font-size: 16px;
-  padding: 6px 12px;
-  margin-right: 8px;
-}
+  input, textarea, button {
+    width: 100%;
+    margin-top: 6px;
+    font-size: 16px;
+  }
 </style>
 </head>
 
@@ -67,97 +40,67 @@ button {
 
 <div id="map"></div>
 
-<div id="editor">
-  <h3>📍 ピンを選択して編集</h3>
-
-  <div class="photos" id="photoList"></div>
-  <input type="file" id="photoInput" accept="image/*" multiple>
-
-  <textarea id="comment" placeholder="コメントを書く"></textarea>
-
-  <div style="margin-top:6px;">
-    <button id="saveBtn">保存</button>
-    <button id="deleteBtn">削除</button>
-  </div>
+<div class="form">
+  <input type="text" id="comment" placeholder="コメントを書く">
+  <input type="file" id="photo">
+  <button onclick="addPin()">この場所にピンを追加</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-const map = L.map("map", {
-  minZoom: 5,
-  maxZoom: 21
-}).setView([36.5, 138], 10);
+  // 地図作成（かなり拡大した状態）
+  const map = L.map('map').setView(
+    [33.30001, 130.51506],
+    18   // ← ここがズーム強化ポイント（3回ズーム相当）
+  );
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 21,
-  attribution: "© OpenStreetMap"
-}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 20
+  }).addTo(map);
 
-let currentMarker = null;
-const markerData = new Map();
+  let selectedLatLng = null;
 
-const photoList = document.getElementById("photoList");
-const photoInput = document.getElementById("photoInput");
-const commentInput = document.getElementById("comment");
-
-map.on("click", e => {
-  const marker = L.marker(e.latlng).addTo(map);
-  markerData.set(marker, { photos: [], comment: "" });
-
-  marker.on("click", () => openEditor(marker));
-  openEditor(marker);
-});
-
-function openEditor(marker) {
-  currentMarker = marker;
-  renderEditor();
-}
-
-function renderEditor() {
-  if (!currentMarker) return;
-
-  const data = markerData.get(currentMarker);
-  photoList.innerHTML = "";
-
-  data.photos.forEach(src => {
-    const img = document.createElement("img");
-    img.src = src;
-    photoList.appendChild(img);
+  // 地図タップで位置選択
+  map.on('click', function(e) {
+    selectedLatLng = e.latlng;
+    alert(`📍 場所を選択\n緯度 ${e.latlng.lat.toFixed(5)}\n経度 ${e.latlng.lng.toFixed(5)}`);
   });
 
-  commentInput.value = data.comment;
-}
+  function addPin() {
+    if (!selectedLatLng) {
+      alert("先に地図をタップして！");
+      return;
+    }
 
-photoInput.addEventListener("change", () => {
-  if (!currentMarker) return;
-  const data = markerData.get(currentMarker);
+    const comment = document.getElementById("comment").value;
+    const photoInput = document.getElementById("photo");
 
-  [...photoInput.files].slice(0, 5 - data.photos.length).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      data.photos.push(reader.result);
-      renderEditor();
-    };
-    reader.readAsDataURL(file);
-  });
+    let popupContent = `<b>${comment || "コメントなし"}</b><br>`;
 
-  photoInput.value = "";
-});
+    if (photoInput.files.length > 0) {
+      const imgURL = URL.createObjectURL(photoInput.files[0]);
+      popupContent += `<img src="${imgURL}" width="150"><br>`;
+    }
 
-document.getElementById("saveBtn").onclick = () => {
-  if (!currentMarker) return;
-  markerData.get(currentMarker).comment = commentInput.value;
-};
+    popupContent += `<button onclick="removePin(this)">🗑 ピン削除</button>`;
 
-document.getElementById("deleteBtn").onclick = () => {
-  if (!currentMarker) return;
-  map.removeLayer(currentMarker);
-  markerData.delete(currentMarker);
-  currentMarker = null;
-  photoList.innerHTML = "";
-  commentInput.value = "";
-};
+    const marker = L.marker(selectedLatLng).addTo(map);
+    marker.bindPopup(popupContent);
+
+    marker.on('popupopen', function() {
+      window.currentMarker = marker;
+    });
+
+    // 入力リセット
+    document.getElementById("comment").value = "";
+    document.getElementById("photo").value = "";
+    selectedLatLng = null;
+  }
+
+  function removePin(button) {
+    map.removeLayer(window.currentMarker);
+  }
 </script>
 
 </body>
