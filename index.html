@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>タップでピン地図</title>
+  <title>日本ピン地図</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet CSS -->
+  <!-- Leaflet -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -14,22 +14,24 @@
   <style>
     body {
       margin: 0;
-      font-family: sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
+
     #map {
       height: 100vh;
-      width: 100%;
+      width: 100vw;
     }
+
     #panel {
       position: absolute;
-      bottom: 10px;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
       background: white;
-      padding: 10px 14px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      font-size: 14px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      font-size: 16px;
       z-index: 1000;
     }
   </style>
@@ -37,30 +39,38 @@
 
 <body>
   <div id="map"></div>
-  <div id="panel">地図をタップしてピンを置こう</div>
+  <div id="panel">📍 地図をタップしてピンを置く</div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    const map = L.map("map").setView([36, 138], 6);
+    // 🔴 日本をかなり大きめに表示
+    const map = L.map("map", {
+      zoomControl: true,
+      minZoom: 5,
+      maxZoom: 20
+    }).setView([36.5, 138], 7);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 20,
       attribution: "© OpenStreetMap"
     }).addTo(map);
 
     const panel = document.getElementById("panel");
 
     map.on("click", function (e) {
-      const zoom = Math.min(map.getZoom() + 2, 18);
-      map.setView(e.latlng, zoom);
+      // 👇 3段階分一気にズーム
+      const newZoom = Math.min(map.getZoom() + 3, 18);
+      map.setView(e.latlng, newZoom, { animate: true });
 
       const marker = L.marker(e.latlng).addTo(map);
 
       panel.innerHTML = `
-        <strong>ピンを置いたよ</strong><br>
-        緯度：${e.latlng.lat.toFixed(5)}<br>
-        経度：${e.latlng.lng.toFixed(5)}
+        ✅ ピンを追加したよ<br>
+        <small>
+        緯度 ${e.latlng.lat.toFixed(5)}<br>
+        経度 ${e.latlng.lng.toFixed(5)}
+        </small>
       `;
     });
   </script>
