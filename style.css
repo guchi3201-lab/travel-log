@@ -1,1 +1,63 @@
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+}
 
+/* 検索バー */
+#search-bar {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: white;
+  padding: 6px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  display: flex;
+  gap: 6px;
+}
+
+#searchInput {
+  width: 180px;
+  padding: 6px;
+  font-size: 14px;
+}
+
+#searchBtn {
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+/* 地図サイズ */
+#map {
+  height: 82vh;
+  margin-top: 60px;
+}
+
+/* ポップアップ */
+.popup-content {
+  font-size: 14px;
+}
+
+.popup-content textarea {
+  width: 100%;
+  height: 50px;
+}
+
+.photo-list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-top: 5px;
+}
+
+.photo-list img {
+  height: 70px;
+  border-radius: 6px;
+}
+
+.status {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
