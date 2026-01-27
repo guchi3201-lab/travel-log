@@ -1,118 +1,142 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>旅行ログ（日本）</title>
+<meta charset="UTF-8">
+<title>旅行ログ</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    }
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
 
-    .container {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
-    #map {
-      flex: 7;
-      position: relative;
-    }
+#map {
+  flex: 7;
+}
 
-    .add-button {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      z-index: 1000;
-      background: #1a73e8;
-      color: white;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 16px;
-      border: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
+.panel {
+  flex: 3;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background: #fff;
+  font-size: 15px;
+}
 
-    .panel {
-      flex: 3;
-      padding: 12px;
-      border-top: 1px solid #ddd;
-      font-size: 15px;
-      background: #fff;
-    }
+.panel h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
 
-    .panel-title {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 6px;
-    }
-  </style>
+.photos {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+
+.photos img {
+  height: 80px;
+  border-radius: 6px;
+}
+
+button {
+  font-size: 15px;
+  padding: 6px 10px;
+  margin-right: 6px;
+}
+</style>
 </head>
+
 <body>
-
 <div class="container">
-  <div id="map">
-    <button class="add-button" id="addBtn">＋ 場所を追加</button>
-  </div>
+  <div id="map"></div>
 
-  <div class="panel">
-    <div class="panel-title">状態</div>
-    <div id="info">通常モード</div>
+  <div class="panel" id="panel">
+    <h2>使い方</h2>
+    地図をタップするとピンを追加できます
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  const japanBounds = [
-    [24.0, 122.0],
-    [46.0, 146.0]
-  ];
+const map = L.map("map", {
+  center: [36, 138],
+  zoom: 5,
+  minZoom: 4,
+  maxZoom: 18
+});
 
-  const map = L.map("map", {
-    center: [36.0, 138.0],
-    zoom: 5,
-    minZoom: 4,
-    maxZoom: 18,
-    maxBounds: japanBounds,
-    maxBoundsViscosity: 1.0
-  });
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap"
-  }).addTo(map);
+const panel = document.getElementById("panel");
 
-  const info = document.getElementById("info");
-  const addBtn = document.getElementById("addBtn");
+// 青・赤ピン
+const blueIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25,41],
+  iconAnchor: [12,41]
+});
 
-  let addMode = false;
+const redIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25,41],
+  iconAnchor: [12,41]
+});
 
-  addBtn.onclick = () => {
-    addMode = true;
-    info.textContent = "追加モード：地図をタップしてください";
-    map.setZoom(14);
+map.on("click", e => {
+  const marker = L.marker(e.latlng, { icon: blueIcon }).addTo(map);
+  openEditor(marker);
+});
+
+function openEditor(marker) {
+  panel.innerHTML = `
+    <h2>場所メモ</h2>
+    <textarea id="comment" rows="2" style="width:100%" placeholder="コメント"></textarea>
+    <input type="file" id="photos" accept="image/*" multiple>
+    <div class="photos" id="photoList"></div>
+    <br>
+    <button id="done">行った！</button>
+    <button id="delete">削除</button>
+  `;
+
+  const photoInput = document.getElementById("photos");
+  const photoList = document.getElementById("photoList");
+
+  photoInput.onchange = () => {
+    photoList.innerHTML = "";
+    [...photoInput.files].slice(0,5).forEach(file => {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(file);
+      photoList.appendChild(img);
+    });
   };
 
-  map.on("click", function (e) {
-    if (!addMode) return;
+  document.getElementById("done").onclick = () => {
+    marker.setIcon(redIcon);
+    panel.innerHTML = "<h2>保存しました</h2>";
+  };
 
-    // 置いた瞬間に寄る
-    map.setView(e.latlng, 16);
+  document.getElementById("delete").onclick = () => {
+    map.removeLayer(marker);
+    panel.innerHTML = "<h2>削除しました</h2>";
+  };
 
-    L.marker(e.latlng).addTo(map);
-
-    info.textContent = "ピンを追加しました";
-    addMode = false;
-  });
+  marker.on("click", () => openEditor(marker));
+}
 </script>
-
 </body>
 </html>
