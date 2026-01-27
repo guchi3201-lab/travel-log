@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>旅行ログ（日本）</title>
 
-  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -16,59 +15,70 @@
       margin: 0;
     }
 
-    #map {
+    /* 全体レイアウト */
+    .container {
       height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
-    .info {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 8px;
+    /* 地図エリア */
+    #map {
+      flex: 7;
+    }
+
+    /* 下の操作エリア */
+    .panel {
+      flex: 3;
+      background: #ffffff;
+      border-top: 1px solid #ddd;
+      padding: 12px;
       font-size: 14px;
-      z-index: 1000;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .panel-title {
+      font-weight: bold;
+      margin-bottom: 6px;
     }
   </style>
 </head>
 <body>
 
-<div id="map"></div>
-<div class="info" id="info">
-  地図をタップして場所を選択
+<div class="container">
+
+  <div id="map"></div>
+
+  <div class="panel">
+    <div class="panel-title">場所情報</div>
+    <div id="info">地図をタップして場所を選択してください</div>
+  </div>
+
 </div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  // 日本の範囲（南西・北東）
   const japanBounds = [
-    [24.0, 122.0], // 南西（沖縄あたり）
-    [46.0, 146.0]  // 北東（北海道あたり）
+    [24.0, 122.0],
+    [46.0, 146.0]
   ];
 
-  // 地図作成（日本中心）
   const map = L.map("map", {
     maxBounds: japanBounds,
     maxBoundsViscosity: 1.0
   }).setView([36.0, 138.0], 5);
 
-  // 地図タイル
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap"
   }).addTo(map);
 
   const info = document.getElementById("info");
 
-  // タップした場所の緯度経度を表示（日本語）
   map.on("click", function (e) {
-    const 緯度 = e.latlng.lat.toFixed(5);
-    const 経度 = e.latlng.lng.toFixed(5);
+    const lat = e.latlng.lat.toFixed(5);
+    const lng = e.latlng.lng.toFixed(5);
 
-    info.textContent = `選択中の場所｜緯度：${緯度}　経度：${経度}`;
+    info.textContent = `選択中の場所｜緯度：${lat}　経度：${lng}`;
   });
 </script>
 
