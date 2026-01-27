@@ -1,10 +1,64 @@
 body {
   margin: 0;
+  font-family: sans-serif;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
   padding: 10px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  background: #2563eb;
+  color: white;
 }
 
 #map {
-  width: 100%;
-  height: 80vh;
+  height: calc(100vh - 60px);
+}
+
+button {
+  padding: 6px 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* モーダル */
+#modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+}
+
+.form {
+  background: white;
+  margin: 40px auto;
+  padding: 15px;
+  width: 90%;
+  max-width: 400px;
+}
+
+/* 写真横スクロール */
+.photo-row {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+}
+
+.photo {
+  position: relative;
+}
+
+.photo img {
+  height: 80px;
+  border-radius: 6px;
+}
+
+.photo button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: red;
+  color: white;
+  border: none;
 }
