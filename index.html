@@ -13,7 +13,7 @@
     html, body {
       height: 100%;
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     .container {
@@ -27,14 +27,13 @@
       position: relative;
     }
 
-    /* 追加ボタン（地図の上） */
     .add-button {
       position: absolute;
       top: 12px;
       right: 12px;
       z-index: 1000;
       background: #1a73e8;
-      color: #fff;
+      color: white;
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 16px;
@@ -60,16 +59,14 @@
 <body>
 
 <div class="container">
-
   <div id="map">
-    <button class="add-button">＋ 場所を追加</button>
+    <button class="add-button" id="addBtn">＋ 場所を追加</button>
   </div>
 
   <div class="panel">
-    <div class="panel-title">場所情報</div>
-    <div id="info">地図をタップして場所を選択してください</div>
+    <div class="panel-title">状態</div>
+    <div id="info">通常モード</div>
   </div>
-
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -84,7 +81,7 @@
     center: [36.0, 138.0],
     zoom: 5,
     minZoom: 4,
-    maxZoom: 16,
+    maxZoom: 18,
     maxBounds: japanBounds,
     maxBoundsViscosity: 1.0
   });
@@ -94,12 +91,26 @@
   }).addTo(map);
 
   const info = document.getElementById("info");
+  const addBtn = document.getElementById("addBtn");
+
+  let addMode = false;
+
+  addBtn.onclick = () => {
+    addMode = true;
+    info.textContent = "追加モード：地図をタップしてください";
+    map.setZoom(14);
+  };
 
   map.on("click", function (e) {
-    const lat = e.latlng.lat.toFixed(5);
-    const lng = e.latlng.lng.toFixed(5);
+    if (!addMode) return;
 
-    info.textContent = `選択中の場所｜緯度：${lat}　経度：${lng}`;
+    // 置いた瞬間に寄る
+    map.setView(e.latlng, 16);
+
+    L.marker(e.latlng).addTo(map);
+
+    info.textContent = "ピンを追加しました";
+    addMode = false;
   });
 </script>
 
