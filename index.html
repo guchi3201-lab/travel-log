@@ -1,34 +1,43 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>旅行ログマップ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Log Map</title>
 
-  <!-- Leaflet CSS -->
+  <!-- Leaflet -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="legend">
-  🟡 行ってみたい　／　🔴 行った！
-</div>
 
-  <!-- 検索 -->
-  <div id="search-bar">
-    <input id="searchInput" type="text" placeholder="地名検索（例：岡山市）">
+  <!-- 🔍 検索バー -->
+  <div id="searchBar">
+    <input id="searchInput" type="text" placeholder="地名検索（例：岡山市）" />
     <button id="searchBtn">検索</button>
   </div>
 
-  <!-- 地図 -->
+  <!-- 🗾 地図 -->
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- 📍 ピン情報パネル -->
+  <div id="pinPanel">
+    <h3 id="pinStatus">📍 ピン情報</h3>
+
+    <textarea id="commentInput" placeholder="コメントを書く"></textarea>
+
+    <input type="file" id="photoInput" accept="image/*" multiple />
+
+    <div id="photoPreview"></div>
+
+    <button id="deletePin">ピンを削除</button>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
