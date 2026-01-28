@@ -14,15 +14,19 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const icons = {
   want: L.icon({
     iconUrl: "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
-    iconSize: [32, 32]
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
   }),
   done: L.icon({
     iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-    iconSize: [32, 32]
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
   })
 };
 
 // ===== 保存 =====
+let markers = [];
+
 function savePins() {
   const data = markers.map(m => ({
     lat: m.getLatLng().lat,
@@ -34,28 +38,34 @@ function savePins() {
   localStorage.setItem("travelPins", JSON.stringify(data));
 }
 
-// ===== ピン管理 =====
-let markers = [];
-
-// ===== ポップアップ作成 =====
+// ===== ポップアップ =====
 function createPopup(marker) {
   const div = document.createElement("div");
 
-  // 状態表示
   const status = document.createElement("div");
-  status.textContent = marker.status === "want" ? "🟡 行ってみたい" : "🔴 行った！";
+  status.textContent = marker.status === "want"
+    ? "🟡 行ってみたい（タップで切替）"
+    : "🔴 行った！（タップで切替）";
   status.style.fontWeight = "bold";
+  status.style.marginBottom = "6px";
 
-  // コメント
+  status.onclick = () => {
+    marker.status = marker.status === "want" ? "done" : "want";
+    marker.setIcon(icons[marker.status]);
+    savePins();
+    marker.setPopupContent(createPopup(marker));
+  };
+
   const textarea = document.createElement("textarea");
   textarea.placeholder = "コメントを書く";
   textarea.value = marker.comment;
+  textarea.style.width = "100%";
+  textarea.style.height = "60px";
   textarea.oninput = () => {
     marker.comment = textarea.value;
     savePins();
   };
 
-  // 写真表示
   const photosDiv = document.createElement("div");
   photosDiv.style.display = "flex";
   photosDiv.style.gap = "6px";
@@ -84,7 +94,6 @@ function createPopup(marker) {
 
   renderPhotos();
 
-  // 写真追加
   const fileInput = document.createElement("input");
   fileInput.type = "file";
   fileInput.accept = "image/*";
@@ -106,9 +115,10 @@ function createPopup(marker) {
     fileInput.value = "";
   };
 
-  // 削除
   const delBtn = document.createElement("button");
   delBtn.textContent = "ピンを削除";
+  delBtn.style.width = "100%";
+  delBtn.style.marginTop = "6px";
   delBtn.onclick = () => {
     map.removeLayer(marker);
     markers = markers.filter(m => m !== marker);
@@ -134,13 +144,12 @@ function addMarker(data) {
   marker.comment = data.comment || "";
   marker.photos = data.photos || [];
 
-  marker.on("click", () => {
-    marker.status = marker.status === "want" ? "done" : "want";
-    marker.setIcon(icons[marker.status]);
-    savePins();
+  marker.on("popupopen", () => {
+    marker.setPopupContent(createPopup(marker));
   });
 
-  marker.bindPopup(() => createPopup(marker));
+  marker.bindPopup("読み込み中…");
+
   markers.push(marker);
 }
 
