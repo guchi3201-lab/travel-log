@@ -3,41 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Travel Log Map</title>
+  <title>旅ログ</title>
 
-  <!-- Leaflet -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2196f3">
+
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- 🔍 検索バー -->
-  <div id="searchBar">
-    <input id="searchInput" type="text" placeholder="地名検索（例：岡山市）" />
-    <button id="searchBtn">検索</button>
-  </div>
+<header>
+  <input id="search" placeholder="地名を検索（例：岡山市）" />
+</header>
 
-  <!-- 🗾 地図 -->
-  <div id="map"></div>
+<div id="map"></div>
 
-  <!-- 📍 ピン情報パネル -->
-  <div id="pinPanel">
-    <h3 id="pinStatus">📍 ピン情報</h3>
+<div id="panel" class="hidden"></div>
 
-    <textarea id="commentInput" placeholder="コメントを書く"></textarea>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
 
-    <input type="file" id="photoInput" accept="image/*" multiple />
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
 
-    <div id="photoPreview"></div>
-
-    <button id="deletePin">ピンを削除</button>
-  </div>
-
-  <script src="script.js"></script>
 </body>
 </html>
