@@ -1,31 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地図検索</title>
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    .search-area {
+      padding: 8px;
+    }
+
+    .search-area input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    #map {
+      width: 100%;
+      height: 300px; /* ← これ超重要 */
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .actions button {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
 <body>
 
   <!-- 検索 -->
-  <div id="searchBox">
-    <input id="searchInput" placeholder="地名検索（例：岡山市）" />
-    <button id="searchBtn">検索</button>
+  <div class="search-area">
+    <input id="search" type="text" placeholder="場所を検索">
   </div>
 
   <!-- 地図 -->
   <div id="map"></div>
 
-  <!-- 下パネル -->
-  <div id="panel">
-    <h3 id="statusText">行ってみたい！</h3>
-
-    <div class="tags">
-      <label><input type="checkbox" value="温泉"> 温泉</label>
-      <label><input type="checkbox" value="神社"> 神社</label>
-      <label><input type="checkbox" value="山"> 山</label>
-      <label><input type="checkbox" value="海"> 海</label>
-      <label><input type="checkbox" value="グルメ"> グルメ</label>
-    </div>
-
-    <textarea placeholder="コメントを書く"></textarea>
-
-    <input type="file" accept="image/*" />
-
-    <button id="deleteBtn">ピンを削除</button>
+  <!-- 写真・タグ -->
+  <div class="actions">
+    <button>📷 写真</button>
+    <button># タグ</button>
   </div>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // 地図初期化
+    const map = L.map("map").setView([35.681236, 139.767125], 13);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    // 検索（Enterだけ対応・ボタンなし）
+    document.getElementById("search").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        alert("検索文字: " + e.target.value);
+        // ここに検索処理を追加できる
+      }
+    });
+  </script>
+
 </body>
+</html>
