@@ -1,37 +1,31 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>旅ログ</title>
-
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2196f3">
-
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <link rel="stylesheet" href="style.css" />
-</head>
 <body>
 
-<header>
-  <input id="search" placeholder="地名を検索（例：岡山市）" />
-</header>
+  <!-- 検索 -->
+  <div id="searchBox">
+    <input id="searchInput" placeholder="地名検索（例：岡山市）" />
+    <button id="searchBtn">検索</button>
+  </div>
 
-<div id="map"></div>
+  <!-- 地図 -->
+  <div id="map"></div>
 
-<div id="panel" class="hidden"></div>
+  <!-- 下パネル -->
+  <div id="panel">
+    <h3 id="statusText">行ってみたい！</h3>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="script.js"></script>
+    <div class="tags">
+      <label><input type="checkbox" value="温泉"> 温泉</label>
+      <label><input type="checkbox" value="神社"> 神社</label>
+      <label><input type="checkbox" value="山"> 山</label>
+      <label><input type="checkbox" value="海"> 海</label>
+      <label><input type="checkbox" value="グルメ"> グルメ</label>
+    </div>
 
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
-}
-</script>
+    <textarea placeholder="コメントを書く"></textarea>
+
+    <input type="file" accept="image/*" />
+
+    <button id="deleteBtn">ピンを削除</button>
+  </div>
 
 </body>
-</html>
