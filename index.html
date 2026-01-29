@@ -2,149 +2,172 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>旅行記録マップ</title>
 
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-}
+body { margin:0; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
+#searchBar { display:flex; gap:6px; padding:8px; }
+#searchInput { flex:1; font-size:16px; padding:8px; }
+#searchBtn { padding:8px 12px; font-size:16px; }
 
-/* 検索エリア */
-#searchBar {
-  display: flex;
-  gap: 5px;
-  padding: 8px;
-}
+#map { height:48vh; }
 
-#searchInput {
-  flex: 1;
-  font-size: 16px;
-  padding: 8px;
-}
-
-#searchBtn {
-  font-size: 16px;
-  padding: 8px 12px;
-}
-
-/* 地図 */
-#map {
-  height: 50vh;
-}
-
-/* 編集パネル */
 #panel {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border-top: 1px solid #ccc;
-  padding: 10px;
-  display: none;
-  z-index: 1000;
+  position:fixed;
+  bottom:0; left:0; right:0;
+  background:#fff;
+  border-top:1px solid #ccc;
+  padding:10px;
+  display:none;
+  z-index:1000;
+  max-height:45vh;
+  overflow:auto;
 }
 
-textarea, input, button {
-  width: 100%;
-  font-size: 16px;
-  margin-top: 6px;
-  padding: 8px;
+button, textarea, input {
+  width:100%;
+  margin-top:6px;
+  font-size:16px;
+  padding:8px;
+}
+
+#photos {
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+}
+#photos img {
+  height:80px;
+  border-radius:6px;
+}
+
+.status {
+  font-weight:bold;
+  margin-top:4px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- 検索 -->
 <div id="searchBar">
   <input id="searchInput" placeholder="場所を検索（例：岡山市）">
   <button id="searchBtn">検索</button>
 </div>
 
-<!-- 地図 -->
 <div id="map"></div>
 
-<!-- 編集 -->
 <div id="panel">
+  <div class="status" id="statusText"></div>
   <textarea id="comment" placeholder="コメント"></textarea>
   <input id="tags" placeholder="タグ（温泉,神社,山）">
+  <input type="file" id="photoInput" multiple accept="image/*">
+  <div id="photos"></div>
+  <button onclick="toggleStatus()">行った / 行きたい 切替</button>
   <button onclick="savePin()">保存</button>
   <button onclick="deletePin()">削除</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const map = L.map("map").setView([36, 138], 5);
+const map = L.map("map").setView([36,138],5);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-let pins = JSON.parse(localStorage.getItem("travelPins") || "[]");
-let markers = [];
-let currentIndex = null;
+let pins = JSON.parse(localStorage.getItem("travelPins")||"[]");
+let markers=[];
+let currentIndex=null;
 
-function redraw() {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
+function icon(color){
+  return L.icon({
+    iconUrl:`https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+    shadowUrl:"https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    iconSize:[25,41], iconAnchor:[12,41]
+  });
+}
 
-  pins.forEach((p, i) => {
-    const m = L.marker(p.latlng).addTo(map);
-    m.on("click", () => {
-      currentIndex = i;
-      comment.value = p.comment || "";
-      tags.value = p.tags || "";
-      panel.style.display = "block";
-    });
+function redraw(){
+  markers.forEach(m=>map.removeLayer(m));
+  markers=[];
+  pins.forEach((p,i)=>{
+    const m=L.marker(p.latlng,{icon:icon(p.status==="done"?"red":"yellow")}).addTo(map);
+    m.on("click",()=>openPanel(i));
     markers.push(m);
   });
 }
 
+function openPanel(i){
+  currentIndex=i;
+  const p=pins[i];
+  comment.value=p.comment||"";
+  tags.value=p.tags||"";
+  statusText.textContent=p.status==="done"?"🔴 行った":"🟡 行きたい";
+  photos.innerHTML="";
+  (p.photos||[]).forEach(src=>{
+    const img=document.createElement("img");
+    img.src=src;
+    photos.appendChild(img);
+  });
+  panel.style.display="block";
+}
+
+map.on("click",e=>{
+  pins.push({latlng:e.latlng,status:"want",comment:"",tags:"",photos:[]});
+  saveStorage();
+  redraw();
+});
+
+function toggleStatus(){
+  pins[currentIndex].status = pins[currentIndex].status==="done"?"want":"done";
+  statusText.textContent=pins[currentIndex].status==="done"?"🔴 行った":"🟡 行きたい";
+  redraw();
+}
+
+photoInput.onchange=()=>{
+  const files=[...photoInput.files].slice(0,5);
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      pins[currentIndex].photos.push(e.target.result);
+      openPanel(currentIndex);
+    };
+    r.readAsDataURL(f);
+  });
+};
+
+function savePin(){
+  pins[currentIndex].comment=comment.value;
+  pins[currentIndex].tags=tags.value;
+  saveStorage();
+  panel.style.display="none";
+}
+
+function deletePin(){
+  pins.splice(currentIndex,1);
+  saveStorage();
+  panel.style.display="none";
+  redraw();
+}
+
+function saveStorage(){
+  localStorage.setItem("travelPins",JSON.stringify(pins));
+}
+
+searchBtn.onclick=()=>{
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchInput.value}`)
+    .then(r=>r.json())
+    .then(d=>{ if(d[0]) map.setView([d[0].lat,d[0].lon],13); });
+};
+
 redraw();
 
-// 地図タップで追加
-map.on("click", e => {
-  pins.push({ latlng: e.latlng, comment: "", tags: "" });
-  localStorage.setItem("travelPins", JSON.stringify(pins));
-  redraw();
-});
-
-// 保存
-function savePin() {
-  pins[currentIndex].comment = comment.value;
-  pins[currentIndex].tags = tags.value;
-  localStorage.setItem("travelPins", JSON.stringify(pins));
-  panel.style.display = "none";
+// PWA
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("service-worker.js");
 }
-
-// 削除
-function deletePin() {
-  pins.splice(currentIndex, 1);
-  localStorage.setItem("travelPins", JSON.stringify(pins));
-  panel.style.display = "none";
-  redraw();
-}
-
-// 検索
-function doSearch() {
-  const q = searchInput.value.trim();
-  if (!q) return;
-
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`)
-    .then(r => r.json())
-    .then(d => {
-      if (d[0]) {
-        map.setView([d[0].lat, d[0].lon], 13);
-      }
-    });
-}
-
-searchBtn.onclick = doSearch;
-searchInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") doSearch();
-});
 </script>
 
 </body>
