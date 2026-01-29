@@ -2,199 +2,247 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<title>思い出マップ</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>マイマップ</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-html,body { margin:0; height:100%; }
-#app { display:flex; height:100%; }
-
-#map { width:70%; height:100%; }
-#side {
-  width:30%;
-  padding:10px;
-  box-sizing:border-box;
-  background:#f7f7f7;
-  overflow-y:auto;
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: sans-serif;
 }
 
-@media(max-width:768px){
-  #app{ flex-direction:column; }
-  #map{ width:100%; height:60%; }
-  #side{ width:100%; height:40%; }
+#searchBar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  width: 85%;
 }
 
-.search {
-  display:flex;
-  gap:5px;
-}
-.search input{
-  flex:9;
-  padding:6px;
-}
-.search button{
-  flex:1;
+#searchBar input {
+  flex: 9;
+  padding: 8px;
+  font-size: 16px;
 }
 
-.tag-list label{
-  display:inline-block;
-  margin:3px;
-  padding:3px 6px;
-  border:1px solid #aaa;
-  border-radius:4px;
-  font-size:12px;
+#searchBar button {
+  flex: 1;
+  font-size: 18px;
 }
 
-img.thumb{
-  width:100%;
-  border-radius:6px;
-  margin-top:5px;
+#container {
+  display: flex;
+  height: 100%;
+}
+
+#map {
+  width: 70%;
+  height: 100%;
+}
+
+#info {
+  width: 30%;
+  padding: 10px;
+  box-sizing: border-box;
+  background: #f7f7f7;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  #container {
+    flex-direction: column;
+  }
+  #map {
+    width: 100%;
+    height: 60%;
+  }
+  #info {
+    width: 100%;
+    height: 40%;
+  }
+}
+
+.photo {
+  width: 100%;
+  margin-top: 5px;
+  border-radius: 6px;
 }
 </style>
 </head>
 
 <body>
-<div id="app">
+
+<div id="searchBar">
+  <input id="searchInput" placeholder="場所を検索（例：岡山）">
+  <button id="searchBtn">🔍</button>
+</div>
+
+<div id="container">
   <div id="map"></div>
-
-  <div id="side">
-    <div class="search">
-      <input id="searchInput" placeholder="場所を検索">
-      <button onclick="searchPlace()">🔍</button>
-    </div>
-
-    <hr>
-
-    <button onclick="setMode()">📍 ピン追加</button>
-
-    <div id="info"></div>
-  </div>
+  <div id="info">ピンを選択してください</div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-const map = L.map('map');
-const savedView = JSON.parse(localStorage.getItem('mapView'));
-if(savedView){
-  map.setView([savedView.lat,savedView.lng], savedView.zoom);
-}else{
-  map.setView([36.5,138],5);
-}
+/* ---------- 地図初期化 ---------- */
+const savedView = JSON.parse(localStorage.getItem("mapView"));
+const map = L.map("map").setView(
+  savedView ? [savedView.lat, savedView.lng] : [36.5, 138],
+  savedView ? savedView.zoom : 5
+);
 
-map.on('moveend', ()=>{
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
+
+map.on("moveend", () => {
   const c = map.getCenter();
-  localStorage.setItem('mapView', JSON.stringify({
-    lat:c.lat,lng:c.lng,zoom:map.getZoom()
+  localStorage.setItem("mapView", JSON.stringify({
+    lat: c.lat,
+    lng: c.lng,
+    zoom: map.getZoom()
   }));
 });
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-let pins = JSON.parse(localStorage.getItem('pins')||'[]');
-let addMode=false;
-
-const tags = {
-  温泉:"♨️", 神社:"⛩", 城:"🏯", 山:"⛰",
-  海:"🌊", グルメ:"🍜", 絶景:"📷"
-};
-
-function save(){
-  localStorage.setItem('pins',JSON.stringify(pins));
-}
-
-function icon(pin){
-  const emoji = tags[pin.tag]||"";
-  const color = pin.state==="行きたい"?"yellow":"green";
-  return L.divIcon({
-    html:`<div style="background:${color};border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:18px">${emoji}</div>`
-  });
-}
-
-function render(){
-  map.eachLayer(l=>{
-    if(l instanceof L.Marker) map.removeLayer(l);
-  });
-
-  pins.forEach(p=>{
-    const m=L.marker([p.lat,p.lng],{icon:icon(p)}).addTo(map);
-    m.on('click',()=>showInfo(p));
-    p.marker=m;
-  });
-}
-
-function setMode(){
-  addMode=!addMode;
-  alert(addMode?"地図をタップして追加":"追加終了");
-}
-
-map.on('click',e=>{
-  if(!addMode) return;
-  pins.push({
-    id:Date.now(),
-    lat:e.latlng.lat,
-    lng:e.latlng.lng,
-    tag:"",
-    state:"行きたい",
-    photo:null
-  });
-  save(); render();
+/* ---------- 赤ピン ---------- */
+const redIcon = L.icon({
+  iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png",
+  iconSize: [32, 32]
 });
 
-function showInfo(p){
-  let html=`
-  <h3>ピン情報</h3>
+/* ---------- データ ---------- */
+let pins = JSON.parse(localStorage.getItem("pins") || "[]");
+let currentPin = null;
+let markers = [];
 
-  状態:
-  <select onchange="p.state=this.value;save();render()">
-    <option ${p.state==="行った"?"selected":""}>行った</option>
-    <option ${p.state==="行きたい"?"selected":""}>行きたい</option>
-  </select>
+/* ---------- 保存 ---------- */
+function savePins() {
+  localStorage.setItem("pins", JSON.stringify(pins));
+}
 
-  <h4>タグ</h4>
-  <div class="tag-list">`;
+/* ---------- 描画 ---------- */
+function renderPins() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
 
-  Object.keys(tags).forEach(t=>{
-    html+=`
-    <label>
-      <input type="radio" name="tag" ${p.tag===t?"checked":""}
-      onchange="p.tag='${t}';save();render()">
-      ${t}
-    </label>`;
+  pins.forEach(pin => {
+    const marker = L.marker([pin.lat, pin.lng], { icon: redIcon }).addTo(map);
+    marker.on("click", () => showInfo(pin));
+    markers.push(marker);
   });
+}
 
-  html+=`</div>
+/* ---------- 情報欄 ---------- */
+function showInfo(pin) {
+  currentPin = pin;
 
-  <h4>写真</h4>
-  <input type="file" accept="image/*" onchange="loadPhoto(event,p)">
-  ${p.photo?`<img class="thumb" src="${p.photo}">
-  <button onclick="p.photo=null;save();showInfo(p)">🗑 削除</button>`:""}
-
-  <hr>
-  <button onclick="pins=pins.filter(x=>x.id!==p.id);save();render();document.getElementById('info').innerHTML=''">❌ ピン削除</button>
+  let html = `
+    <h3>思い出</h3>
+    <textarea id="comment" rows="4" placeholder="コメント">${pin.comment || ""}</textarea>
+    <br><br>
+    <input type="file" id="photoInput" multiple>
+    <div id="photos"></div>
+    <br>
+    <button onclick="saveInfo()">保存</button>
+    <button onclick="deletePin()">ピン削除</button>
   `;
 
-  document.getElementById('info').innerHTML=html;
+  document.getElementById("info").innerHTML = html;
+
+  renderPhotos();
+
+  document.getElementById("photoInput").onchange = e => {
+    [...e.target.files].forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        pin.photos.push(ev.target.result);
+        savePins();
+        renderPhotos();
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 }
 
-function loadPhoto(e,p){
-  const r=new FileReader();
-  r.onload=()=>{ p.photo=r.result; save(); showInfo(p); };
-  r.readAsDataURL(e.target.files[0]);
+/* ---------- 写真表示 ---------- */
+function renderPhotos() {
+  const box = document.getElementById("photos");
+  box.innerHTML = "";
+
+  currentPin.photos.forEach((src, i) => {
+    const img = document.createElement("img");
+    img.src = src;
+    img.className = "photo";
+    img.onclick = () => {
+      if (confirm("写真を削除しますか？")) {
+        currentPin.photos.splice(i, 1);
+        savePins();
+        renderPhotos();
+      }
+    };
+    box.appendChild(img);
+  });
 }
 
-async function searchPlace(){
-  const q=document.getElementById('searchInput').value;
-  const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
-  const d=await res.json();
-  if(d[0]){
-    map.setView([d[0].lat,d[0].lon], q.includes("県")?8:13);
-  }
+/* ---------- 保存 ---------- */
+function saveInfo() {
+  currentPin.comment = document.getElementById("comment").value;
+  savePins();
+  alert("保存しました");
 }
 
-render();
+/* ---------- 削除 ---------- */
+function deletePin() {
+  if (!confirm("ピンを削除しますか？")) return;
+  pins = pins.filter(p => p !== currentPin);
+  savePins();
+  document.getElementById("info").innerText = "ピンを選択してください";
+  renderPins();
+}
+
+/* ---------- ピン追加 ---------- */
+map.on("click", e => {
+  const pin = {
+    lat: e.latlng.lat,
+    lng: e.latlng.lng,
+    comment: "",
+    photos: []
+  };
+  pins.push(pin);
+  savePins();
+  renderPins();
+});
+
+/* ---------- 検索 ---------- */
+function searchPlace() {
+  const q = document.getElementById("searchInput").value.trim();
+  if (!q) return;
+
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.length === 0) {
+        alert("見つかりませんでした");
+        return;
+      }
+      map.setView([d[0].lat, d[0].lon], 9);
+    });
+}
+
+document.getElementById("searchBtn").onclick = searchPlace;
+document.getElementById("searchInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") searchPlace();
+});
+
+/* ---------- 初期描画 ---------- */
+renderPins();
 </script>
+
 </body>
 </html>
