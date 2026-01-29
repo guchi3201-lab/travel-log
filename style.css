@@ -1,98 +1,86 @@
-body {
+html, body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  height: 100%;
+  font-family: sans-serif;
 }
 
-/* ===== ヘッダー ===== */
 header {
-  height: 56px;
   display: flex;
   align-items: center;
-  padding: 8px;
-  box-sizing: border-box;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #fff;
+  z-index: 1000;
+}
+
+h1 {
+  margin: 0;
+  font-size: 18px;
 }
 
 .search-box {
   display: flex;
-  width: 100%;
-  gap: 8px;
 }
 
 .search-box input {
-  flex: 9;
-  padding: 8px;
-  font-size: 16px;
-}
-
-.search-box button {
-  flex: 1;
-  font-size: 16px;
-}
-
-/* ===== レイアウト ===== */
-#container {
-  display: flex;
-  height: calc(100vh - 56px);
+  padding: 4px;
 }
 
 #map {
-  width: 60%;
+  height: calc(100% - 48px);
 }
 
-#info {
-  width: 40%;
-  padding: 12px;
-  box-sizing: border-box;
+#infoPanel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 10px;
+  max-height: 50%;
   overflow-y: auto;
+  border-top: 1px solid #ccc;
 }
 
-#info textarea {
+.hidden {
+  display: none;
+}
+
+#comment {
   width: 100%;
-  height: 80px;
-  margin-bottom: 8px;
+  height: 60px;
 }
 
-/* ===== 写真 ===== */
-.photo-list {
+#photoList {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-  margin: 8px 0;
+  gap: 5px;
+  margin-top: 8px;
 }
 
-.photo-list img {
+#photoList img {
   width: 100%;
   height: 60px;
   object-fit: cover;
-  border-radius: 6px;
+  cursor: pointer;
 }
 
-/* ===== ボタン ===== */
-button {
-  padding: 10px;
-  margin-top: 6px;
-  width: 100%;
+.buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
 }
 
-button.danger {
-  background: #e53935;
-  color: white;
-  border: none;
+#modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ===== スマホ ===== */
-@media (max-width: 768px) {
-  #container {
-    flex-direction: column;
-  }
-
-  #map {
-    width: 100%;
-    height: 60%;
-  }
-
-  #info {
-    width: 100%;
-    height: 40%;
-  }
+#modal img {
+  max-width: 90%;
+  max-height: 90%;
 }
