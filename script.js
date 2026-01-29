@@ -1,187 +1,124 @@
-// ================== 地図 ==================
-const map = L.map("map", {
-  zoomControl: true,
-  minZoom: 5,
-  maxZoom: 18
-}).setView([36.5, 138], 6);
+// ===== 地図 =====
+const map = L.map("map").setView([36.5, 138], 5);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
 }).addTo(map);
 
-// ================== アイコン ==================
-const icons = {
-  went: L.icon({
-    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/red.png",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  }),
-  want: L.icon({
-    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/yellow.png",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  })
-};
+// ===== データ =====
+let pins = JSON.parse(localStorage.getItem("pins") || "[]");
+let selectedPin = null;
+let markers = [];
 
-// ================== 保存 ==================
-function loadPins() {
-  return JSON.parse(localStorage.getItem("pins") || "[]");
-}
+// ===== 赤ピン =====
+const redIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconAnchor: [12, 41]
+});
+
+// ===== 表示 =====
 function savePins() {
   localStorage.setItem("pins", JSON.stringify(pins));
 }
 
-function loadTags() {
-  return JSON.parse(localStorage.getItem("tags") || '["温泉","神社","山","海","グルメ"]');
+function renderPins() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  pins.forEach(pin => {
+    const marker = L.marker([pin.lat, pin.lng], { icon: redIcon }).addTo(map);
+    marker.on("click", () => selectPin(pin));
+    markers.push(marker);
+  });
 }
-function saveTags() {
-  localStorage.setItem("tags", JSON.stringify(TAGS));
+
+// ===== ピン選択 =====
+function selectPin(pin) {
+  selectedPin = pin;
+  document.getElementById("comment").value = pin.comment || "";
+  renderPhotos(pin.photos || []);
 }
 
-let pins = loadPins();
-let TAGS = loadTags();
+// ===== 写真表示 =====
+function renderPhotos(photos) {
+  const list = document.getElementById("photoList");
+  list.innerHTML = "";
+  photos.forEach(src => {
+    const img = document.createElement("img");
+    img.src = src;
+    list.appendChild(img);
+  });
+}
 
-// ================== ピン ==================
-pins.forEach(p => createMarker(p));
-
+// ===== 地図タップ =====
 map.on("click", e => {
   const pin = {
     id: Date.now(),
     lat: e.latlng.lat,
     lng: e.latlng.lng,
-    status: "want",
     comment: "",
-    photos: [],
-    tags: []
+    photos: []
   };
   pins.push(pin);
   savePins();
-  createMarker(pin);
-  openPanel(pin);
+  renderPins();
+  selectPin(pin);
 });
 
-function createMarker(pin) {
-  const marker = L.marker([pin.lat, pin.lng], {
-    icon: icons[pin.status]
-  }).addTo(map);
+// ===== 保存 =====
+document.getElementById("saveBtn").onclick = () => {
+  if (!selectedPin) return;
 
-  pin.marker = marker;
+  selectedPin.comment = document.getElementById("comment").value;
 
-  marker.on("click", () => openPanel(pin));
-}
+  const files = document.getElementById("photoInput").files;
+  if (files.length + (selectedPin.photos?.length || 0) > 5) {
+    alert("写真は最大5枚まで");
+    return;
+  }
 
-// ================== パネル ==================
-const panel = document.getElementById("panel");
-
-function openPanel(pin) {
-  panel.innerHTML = "";
-  panel.classList.remove("hidden");
-
-  const title = document.createElement("div");
-  title.textContent =
-    pin.status === "went" ? "🔴 行った場所" : "🟡 行きたい場所";
-  panel.appendChild(title);
-
-  const toggle = document.createElement("button");
-  toggle.textContent = "状態切り替え";
-  toggle.onclick = () => {
-    pin.status = pin.status === "went" ? "want" : "went";
-    pin.marker.setIcon(icons[pin.status]);
-    savePins();
-    openPanel(pin);
-  };
-  panel.appendChild(toggle);
-
-  const textarea = document.createElement("textarea");
-  textarea.value = pin.comment;
-  textarea.oninput = () => {
-    pin.comment = textarea.value;
-    savePins();
-  };
-  panel.appendChild(textarea);
-
-  const photoInput = document.createElement("input");
-  photoInput.type = "file";
-  photoInput.accept = "image/*";
-  photoInput.onchange = e => {
+  for (const file of files) {
     const reader = new FileReader();
-    reader.onload = () => {
-      pin.photos.push(reader.result);
+    reader.onload = e => {
+      selectedPin.photos.push(e.target.result);
       savePins();
-      openPanel(pin);
+      renderPhotos(selectedPin.photos);
     };
-    reader.readAsDataURL(e.target.files[0]);
-  };
-  panel.appendChild(photoInput);
+    reader.readAsDataURL(file);
+  }
 
-  const photos = document.createElement("div");
-  photos.className = "photos";
-  pin.photos.forEach(src => {
-    const img = document.createElement("img");
-    img.src = src;
-    photos.appendChild(img);
-  });
-  panel.appendChild(photos);
+  savePins();
+  alert("保存しました");
+};
 
-  const tagsDiv = document.createElement("div");
-  tagsDiv.className = "tags";
-  TAGS.forEach(tag => {
-    const label = document.createElement("label");
-    label.className = "tag";
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = pin.tags.includes(tag);
-    cb.onchange = () => {
-      if (cb.checked) pin.tags.push(tag);
-      else pin.tags = pin.tags.filter(t => t !== tag);
-      savePins();
-    };
-    label.appendChild(cb);
-    label.append(" " + tag);
-    tagsDiv.appendChild(label);
-  });
-  panel.appendChild(tagsDiv);
+// ===== 削除 =====
+document.getElementById("deleteBtn").onclick = () => {
+  if (!selectedPin) return;
+  pins = pins.filter(p => p.id !== selectedPin.id);
+  selectedPin = null;
+  document.getElementById("comment").value = "";
+  document.getElementById("photoList").innerHTML = "";
+  savePins();
+  renderPins();
+};
 
-  const addTag = document.createElement("div");
-  addTag.className = "add-tag";
-  const tagInput = document.createElement("input");
-  tagInput.placeholder = "タグ追加";
-  const tagBtn = document.createElement("button");
-  tagBtn.textContent = "追加";
-  tagBtn.onclick = () => {
-    const t = tagInput.value.trim();
-    if (!t) return;
-    if (!TAGS.includes(t)) {
-      TAGS.push(t);
-      saveTags();
-    }
-    if (!pin.tags.includes(t)) pin.tags.push(t);
-    savePins();
-    openPanel(pin);
-  };
-  addTag.appendChild(tagInput);
-  addTag.appendChild(tagBtn);
-  panel.appendChild(addTag);
+// ===== 検索 =====
+document.getElementById("searchBtn").onclick = async () => {
+  const q = document.getElementById("searchInput").value;
+  if (!q) return;
 
-  const del = document.createElement("button");
-  del.textContent = "削除";
-  del.onclick = () => {
-    map.removeLayer(pin.marker);
-    pins = pins.filter(p => p.id !== pin.id);
-    savePins();
-    panel.classList.add("hidden");
-  };
-  panel.appendChild(del);
-}
-
-// ================== 検索 ==================
-document.getElementById("search").addEventListener("change", async e => {
-  const q = e.target.value;
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${q}`
   );
   const data = await res.json();
-  if (data[0]) {
-    map.setView([data[0].lat, data[0].lon], 13);
+  if (data.length > 0) {
+    map.fitBounds([
+      [data[0].lat, data[0].lon],
+      [data[0].lat, data[0].lon]
+    ], { maxZoom: 8 });
   }
-});
+};
+
+// 初期表示
+renderPins();
