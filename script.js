@@ -1,124 +1,106 @@
-// ===== 地図 =====
-const map = L.map("map").setView([36.5, 138], 5);
+const map = L.map('map').setView([36, 138], 5);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap"
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap'
 }).addTo(map);
 
-// ===== データ =====
-let pins = JSON.parse(localStorage.getItem("pins") || "[]");
-let selectedPin = null;
-let markers = [];
+let currentMarker = null;
+let data = JSON.parse(localStorage.getItem('pins') || '[]');
 
-// ===== 赤ピン =====
-const redIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconAnchor: [12, 41]
+const redIcon = L.icon({
+  iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32]
 });
 
-// ===== 表示 =====
-function savePins() {
-  localStorage.setItem("pins", JSON.stringify(pins));
+function saveAll() {
+  localStorage.setItem('pins', JSON.stringify(data));
 }
 
 function renderPins() {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-
-  pins.forEach(pin => {
-    const marker = L.marker([pin.lat, pin.lng], { icon: redIcon }).addTo(map);
-    marker.on("click", () => selectPin(pin));
-    markers.push(marker);
+  data.forEach(p => {
+    const m = L.marker([p.lat, p.lng], { icon: redIcon }).addTo(map);
+    m.on('click', () => openInfo(p, m));
+    p._marker = m;
   });
 }
 
-// ===== ピン選択 =====
-function selectPin(pin) {
-  selectedPin = pin;
-  document.getElementById("comment").value = pin.comment || "";
-  renderPhotos(pin.photos || []);
+renderPins();
+
+map.on('click', e => {
+  const pin = {
+    lat: e.latlng.lat,
+    lng: e.latlng.lng,
+    comment: '',
+    photos: []
+  };
+  data.push(pin);
+  saveAll();
+
+  const m = L.marker(e.latlng, { icon: redIcon }).addTo(map);
+  pin._marker = m;
+  openInfo(pin, m);
+});
+
+function openInfo(pin, marker) {
+  currentMarker = pin;
+  document.getElementById('infoPanel').classList.remove('hidden');
+  document.getElementById('comment').value = pin.comment;
+  renderPhotos();
 }
 
-// ===== 写真表示 =====
-function renderPhotos(photos) {
-  const list = document.getElementById("photoList");
-  list.innerHTML = "";
-  photos.forEach(src => {
-    const img = document.createElement("img");
+function renderPhotos() {
+  const list = document.getElementById('photoList');
+  list.innerHTML = '';
+  currentMarker.photos.forEach(src => {
+    const img = document.createElement('img');
     img.src = src;
+    img.onclick = () => openModal(src);
     list.appendChild(img);
   });
 }
 
-// ===== 地図タップ =====
-map.on("click", e => {
-  const pin = {
-    id: Date.now(),
-    lat: e.latlng.lat,
-    lng: e.latlng.lng,
-    comment: "",
-    photos: []
-  };
-  pins.push(pin);
-  savePins();
-  renderPins();
-  selectPin(pin);
-});
-
-// ===== 保存 =====
-document.getElementById("saveBtn").onclick = () => {
-  if (!selectedPin) return;
-
-  selectedPin.comment = document.getElementById("comment").value;
-
-  const files = document.getElementById("photoInput").files;
-  if (files.length + (selectedPin.photos?.length || 0) > 5) {
-    alert("写真は最大5枚まで");
-    return;
-  }
-
-  for (const file of files) {
+document.getElementById('photoInput').onchange = e => {
+  const files = Array.from(e.target.files).slice(0, 5 - currentMarker.photos.length);
+  files.forEach(f => {
     const reader = new FileReader();
-    reader.onload = e => {
-      selectedPin.photos.push(e.target.result);
-      savePins();
-      renderPhotos(selectedPin.photos);
+    reader.onload = () => {
+      currentMarker.photos.push(reader.result);
+      renderPhotos();
     };
-    reader.readAsDataURL(file);
-  }
-
-  savePins();
-  alert("保存しました");
+    reader.readAsDataURL(f);
+  });
 };
 
-// ===== 削除 =====
-document.getElementById("deleteBtn").onclick = () => {
-  if (!selectedPin) return;
-  pins = pins.filter(p => p.id !== selectedPin.id);
-  selectedPin = null;
-  document.getElementById("comment").value = "";
-  document.getElementById("photoList").innerHTML = "";
-  savePins();
-  renderPins();
+document.getElementById('saveBtn').onclick = () => {
+  currentMarker.comment = document.getElementById('comment').value;
+  saveAll();
+  alert('保存しました');
 };
 
-// ===== 検索 =====
-document.getElementById("searchBtn").onclick = async () => {
-  const q = document.getElementById("searchInput").value;
-  if (!q) return;
-
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${q}`
-  );
-  const data = await res.json();
-  if (data.length > 0) {
-    map.fitBounds([
-      [data[0].lat, data[0].lon],
-      [data[0].lat, data[0].lon]
-    ], { maxZoom: 8 });
-  }
+document.getElementById('deleteBtn').onclick = () => {
+  currentMarker._marker.remove();
+  data = data.filter(p => p !== currentMarker);
+  saveAll();
+  document.getElementById('infoPanel').classList.add('hidden');
 };
 
-// 初期表示
-renderPins();
+document.getElementById('searchBtn').onclick = () => {
+  const q = document.getElementById('searchInput').value;
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`)
+    .then(r => r.json())
+    .then(res => {
+      if (res[0]) {
+        map.setView([res[0].lat, res[0].lon], 13);
+      }
+    });
+};
+
+function openModal(src) {
+  document.getElementById('modalImg').src = src;
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+document.getElementById('modal').onclick = () => {
+  document.getElementById('modal').classList.add('hidden');
+};
