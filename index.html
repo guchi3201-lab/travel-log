@@ -1,173 +1,225 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>旅行記録マップ</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>マイ旅行マップ</title>
 
-<link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- Leaflet -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-body { margin:0; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
-#searchBar { display:flex; gap:6px; padding:8px; }
-#searchInput { flex:1; font-size:16px; padding:8px; }
-#searchBtn { padding:8px 12px; font-size:16px; }
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+  }
 
-#map { height:48vh; }
+  /* 検索バー */
+  #search-bar {
+    display: flex;
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+  }
+  #search-input {
+    flex: 9;
+    padding: 10px;
+    font-size: 16px;
+  }
+  #search-btn {
+    flex: 1;
+    font-size: 16px;
+  }
 
-#panel {
-  position:fixed;
-  bottom:0; left:0; right:0;
-  background:#fff;
-  border-top:1px solid #ccc;
-  padding:10px;
-  display:none;
-  z-index:1000;
-  max-height:45vh;
-  overflow:auto;
-}
+  /* メイン */
+  #container {
+    display: flex;
+    height: calc(100vh - 52px);
+  }
 
-button, textarea, input {
-  width:100%;
-  margin-top:6px;
-  font-size:16px;
-  padding:8px;
-}
+  #map {
+    width: 60%;
+    height: 100%;
+  }
 
-#photos {
-  display:flex;
-  gap:6px;
-  overflow-x:auto;
-}
-#photos img {
-  height:80px;
-  border-radius:6px;
-}
+  #info {
+    width: 40%;
+    padding: 10px;
+    border-left: 1px solid #ddd;
+    overflow-y: auto;
+    display: none;
+  }
 
-.status {
-  font-weight:bold;
-  margin-top:4px;
-}
+  /* スマホ */
+  @media (max-width: 768px) {
+    #container {
+      flex-direction: column;
+    }
+    #map {
+      width: 100%;
+      height: 60%;
+    }
+    #info {
+      width: 100%;
+      height: 40%;
+    }
+  }
+
+  .tags label {
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+  img.preview {
+    width: 100%;
+    margin-top: 5px;
+    border-radius: 6px;
+  }
+
+  button {
+    padding: 8px;
+    margin-top: 8px;
+  }
 </style>
 </head>
 
 <body>
 
-<div id="searchBar">
-  <input id="searchInput" placeholder="場所を検索（例：岡山市）">
-  <button id="searchBtn">検索</button>
+<!-- 検索 -->
+<div id="search-bar">
+  <input id="search-input" placeholder="例：岡山" />
+  <button id="search-btn">🔍</button>
 </div>
 
-<div id="map"></div>
+<!-- メイン -->
+<div id="container">
+  <div id="map"></div>
 
-<div id="panel">
-  <div class="status" id="statusText"></div>
-  <textarea id="comment" placeholder="コメント"></textarea>
-  <input id="tags" placeholder="タグ（温泉,神社,山）">
-  <input type="file" id="photoInput" multiple accept="image/*">
-  <div id="photos"></div>
-  <button onclick="toggleStatus()">行った / 行きたい 切替</button>
-  <button onclick="savePin()">保存</button>
-  <button onclick="deletePin()">削除</button>
+  <div id="info">
+    <h3 id="place-title">スポット</h3>
+
+    <div class="tags">
+      <label><input type="checkbox" value="温泉"> ♨ 温泉</label>
+      <label><input type="checkbox" value="神社"> ⛩ 神社</label>
+      <label><input type="checkbox" value="城"> 🏯 城</label>
+      <label><input type="checkbox" value="山"> ⛰ 山</label>
+      <label><input type="checkbox" value="海"> 🌊 海</label>
+      <label><input type="checkbox" value="グルメ"> 🍜 グルメ</label>
+      <label><input type="checkbox" value="絶景"> 📸 絶景</label>
+    </div>
+
+    <textarea id="comment" rows="3" style="width:100%" placeholder="コメント"></textarea>
+
+    <input type="file" id="photo" accept="image/*" />
+    <img id="photo-preview" class="preview" />
+
+    <button id="save">💾 保存</button>
+  </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const map = L.map("map").setView([36,138],5);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+  const map = L.map("map").setView([34.665, 133.919], 10);
 
-let pins = JSON.parse(localStorage.getItem("travelPins")||"[]");
-let markers=[];
-let currentIndex=null;
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap",
+  }).addTo(map);
 
-function icon(color){
-  return L.icon({
-    iconUrl:`https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
-    shadowUrl:"https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    iconSize:[25,41], iconAnchor:[12,41]
-  });
-}
+  let currentMarker = null;
+  let markers = JSON.parse(localStorage.getItem("markers") || "[]");
 
-function redraw(){
-  markers.forEach(m=>map.removeLayer(m));
-  markers=[];
-  pins.forEach((p,i)=>{
-    const m=L.marker(p.latlng,{icon:icon(p.status==="done"?"red":"yellow")}).addTo(map);
-    m.on("click",()=>openPanel(i));
-    markers.push(m);
-  });
-}
+  const icons = {
+    温泉: "♨",
+    神社: "⛩",
+    城: "🏯",
+    山: "⛰",
+    海: "🌊",
+    グルメ: "🍜",
+    絶景: "📸",
+  };
 
-function openPanel(i){
-  currentIndex=i;
-  const p=pins[i];
-  comment.value=p.comment||"";
-  tags.value=p.tags||"";
-  statusText.textContent=p.status==="done"?"🔴 行った":"🟡 行きたい";
-  photos.innerHTML="";
-  (p.photos||[]).forEach(src=>{
-    const img=document.createElement("img");
-    img.src=src;
-    photos.appendChild(img);
-  });
-  panel.style.display="block";
-}
+  function saveMarkers() {
+    localStorage.setItem("markers", JSON.stringify(markers));
+  }
 
-map.on("click",e=>{
-  pins.push({latlng:e.latlng,status:"want",comment:"",tags:"",photos:[]});
-  saveStorage();
-  redraw();
-});
+  function renderMarkers() {
+    markers.forEach((m) => {
+      const iconText = m.tags.map(t => icons[t]).join("");
+      const marker = L.marker([m.lat, m.lng]).addTo(map);
+      marker.bindPopup(`
+        <strong>${m.name}</strong><br>
+        ${iconText}<br>
+        ${m.photo ? `<img src="${m.photo}" width="120">` : ""}
+      `);
 
-function toggleStatus(){
-  pins[currentIndex].status = pins[currentIndex].status==="done"?"want":"done";
-  statusText.textContent=pins[currentIndex].status==="done"?"🔴 行った":"🟡 行きたい";
-  redraw();
-}
+      marker.on("click", () => openInfo(m, marker));
+    });
+  }
 
-photoInput.onchange=()=>{
-  const files=[...photoInput.files].slice(0,5);
-  files.forEach(f=>{
-    const r=new FileReader();
-    r.onload=e=>{
-      pins[currentIndex].photos.push(e.target.result);
-      openPanel(currentIndex);
+  renderMarkers();
+
+  map.on("click", (e) => {
+    const name = prompt("スポット名");
+    if (!name) return;
+
+    const markerData = {
+      name,
+      lat: e.latlng.lat,
+      lng: e.latlng.lng,
+      tags: [],
+      comment: "",
+      photo: null,
     };
-    r.readAsDataURL(f);
+    markers.push(markerData);
+    saveMarkers();
+    location.reload();
   });
-};
 
-function savePin(){
-  pins[currentIndex].comment=comment.value;
-  pins[currentIndex].tags=tags.value;
-  saveStorage();
-  panel.style.display="none";
-}
+  function openInfo(data, marker) {
+    currentMarker = data;
+    document.getElementById("info").style.display = "block";
+    document.getElementById("place-title").innerText = data.name;
+    document.getElementById("comment").value = data.comment || "";
 
-function deletePin(){
-  pins.splice(currentIndex,1);
-  saveStorage();
-  panel.style.display="none";
-  redraw();
-}
+    document.querySelectorAll(".tags input").forEach(cb => {
+      cb.checked = data.tags.includes(cb.value);
+    });
 
-function saveStorage(){
-  localStorage.setItem("travelPins",JSON.stringify(pins));
-}
+    if (data.photo) {
+      document.getElementById("photo-preview").src = data.photo;
+    }
+  }
 
-searchBtn.onclick=()=>{
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchInput.value}`)
-    .then(r=>r.json())
-    .then(d=>{ if(d[0]) map.setView([d[0].lat,d[0].lon],13); });
-};
+  document.getElementById("photo").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      document.getElementById("photo-preview").src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 
-redraw();
+  document.getElementById("save").onclick = () => {
+    currentMarker.comment = document.getElementById("comment").value;
+    currentMarker.tags = Array.from(
+      document.querySelectorAll(".tags input:checked")
+    ).map(cb => cb.value);
 
-// PWA
-if("serviceWorker"in navigator){
-  navigator.serviceWorker.register("service-worker.js");
-}
+    const img = document.getElementById("photo-preview").src;
+    currentMarker.photo = img || null;
+
+    saveMarkers();
+    alert("保存しました");
+  };
+
+  document.getElementById("search-btn").onclick = () => {
+    const q = document.getElementById("search-input").value;
+    if (q.includes("岡山")) {
+      map.setView([34.665, 133.919], 8);
+    }
+  };
 </script>
 
 </body>
