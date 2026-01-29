@@ -1,48 +1,250 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>Travel Log Map 🇯🇵</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>思い出マップ</title>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+
+/* ===== ヘッダー ===== */
+header {
+  height: 10vh;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 8px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+
+header h1 {
+  font-size: 16px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+#searchInput {
+  flex: 1;
+  padding: 6px;
+  font-size: 14px;
+}
+
+#searchBtn {
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ===== レイアウト ===== */
+#container {
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#map {
+  height: 60%;
+}
+
+#info {
+  height: 40%;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  overflow-y: auto;
+  background: #fff;
+  display: none;
+}
+
+/* ===== 写真 ===== */
+#photos {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  margin-top: 10px;
+}
+
+#photos img {
+  width: 100%;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* ===== ボタン ===== */
+button {
+  margin-top: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+/* ===== PC用 ===== */
+@media (min-width: 769px) {
+  header {
+    height: 8vh;
+  }
+
+  #container {
+    height: 92vh;
+    flex-direction: row;
+  }
+
+  #map {
+    width: 70%;
+    height: 100%;
+  }
+
+  #info {
+    width: 30%;
+    height: 100%;
+    display: block;
+  }
+}
+</style>
 </head>
+
 <body>
 
 <header>
-  <h1>思い出マップ</h1>
-  <div class="search-box">
-    <input type="text" id="searchInput" placeholder="地名で検索">
-    <button id="searchBtn">🔍</button>
-  </div>
+  <h1>思い出</h1>
+  <input id="searchInput" placeholder="地名を検索" />
+  <button id="searchBtn">🔍</button>
 </header>
 
-<div id="map"></div>
+<div id="container">
+  <div id="map"></div>
 
-<div id="infoPanel" class="hidden">
-  <h2>思い出</h2>
+  <div id="info">
+    <h3>思い出情報</h3>
+    <textarea id="comment" rows="3" placeholder="コメント"></textarea>
 
-  <textarea id="comment" placeholder="思い出を書こう"></textarea>
+    <input type="file" id="photoInput" accept="image/*" multiple />
+    <div id="photos"></div>
 
-  <input type="file" id="photoInput" accept="image/*" multiple>
-
-  <div id="photoList"></div>
-
-  <div class="buttons">
     <button id="saveBtn">保存</button>
     <button id="deleteBtn">ピン削除</button>
   </div>
 </div>
 
-<!-- 写真拡大用 -->
-<div id="modal" class="hidden">
-  <img id="modalImg">
-</div>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="script.js"></script>
+
+<script>
+const map = L.map("map").setView([35.0, 135.0], 5);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap",
+}).addTo(map);
+
+let pins = JSON.parse(localStorage.getItem("pins") || "[]");
+let currentPin = null;
+
+const redIcon = L.icon({
+  iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
+
+function savePins() {
+  localStorage.setItem("pins", JSON.stringify(pins));
+}
+
+function renderPins() {
+  pins.forEach(pin => {
+    const marker = L.marker(pin.latlng, { icon: redIcon }).addTo(map);
+    marker.on("click", () => selectPin(pin));
+    pin.marker = marker;
+  });
+}
+
+function selectPin(pin) {
+  currentPin = pin;
+  document.getElementById("info").style.display = "block";
+  document.getElementById("comment").value = pin.comment || "";
+  renderPhotos();
+}
+
+function renderPhotos() {
+  const photosDiv = document.getElementById("photos");
+  photosDiv.innerHTML = "";
+  (currentPin.photos || []).forEach((src, i) => {
+    const img = document.createElement("img");
+    img.src = src;
+    img.onclick = () => window.open(src);
+    photosDiv.appendChild(img);
+  });
+}
+
+map.on("click", e => {
+  const pin = {
+    latlng: e.latlng,
+    comment: "",
+    photos: []
+  };
+  pins.push(pin);
+  const marker = L.marker(e.latlng, { icon: redIcon }).addTo(map);
+  marker.on("click", () => selectPin(pin));
+  pin.marker = marker;
+  savePins();
+  selectPin(pin);
+});
+
+document.getElementById("saveBtn").onclick = () => {
+  if (!currentPin) return;
+  currentPin.comment = document.getElementById("comment").value;
+  savePins();
+};
+
+document.getElementById("deleteBtn").onclick = () => {
+  if (!currentPin) return;
+  map.removeLayer(currentPin.marker);
+  pins = pins.filter(p => p !== currentPin);
+  currentPin = null;
+  document.getElementById("info").style.display = "none";
+  savePins();
+};
+
+document.getElementById("photoInput").onchange = e => {
+  if (!currentPin) return;
+  const files = Array.from(e.target.files).slice(0, 5);
+  currentPin.photos = [];
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      currentPin.photos.push(ev.target.result);
+      renderPhotos();
+      savePins();
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+document.getElementById("searchBtn").onclick = () => {
+  const q = document.getElementById("searchInput").value;
+  if (!q) return;
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data[0]) return;
+      map.setView([data[0].lat, data[0].lon], data[0].type === "administrative" ? 9 : 13);
+    });
+};
+
+renderPins();
+</script>
+
 </body>
 </html>
