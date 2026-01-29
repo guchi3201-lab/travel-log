@@ -1,248 +1,45 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>思い出マップ</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Travel Log Map 🇯🇵</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<style>
-html, body {
-  margin: 0;
-  height: 100%;
-  font-family: sans-serif;
-}
-
-#searchBar {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  display: flex;
-  width: 85%;
-}
-
-#searchBar input {
-  flex: 9;
-  padding: 8px;
-  font-size: 16px;
-}
-
-#searchBar button {
-  flex: 1;
-  font-size: 18px;
-}
-
-#container {
-  display: flex;
-  height: 100%;
-}
-
-#map {
-  width: 70%;
-  height: 100%;
-}
-
-#info {
-  width: 30%;
-  padding: 10px;
-  box-sizing: border-box;
-  background: #f7f7f7;
-  overflow-y: auto;
-}
-
-@media (max-width: 768px) {
-  #container {
-    flex-direction: column;
-  }
-  #map {
-    width: 100%;
-    height: 60%;
-  }
-  #info {
-    width: 100%;
-    height: 40%;
-  }
-}
-
-.photo {
-  width: 100%;
-  margin-top: 5px;
-  border-radius: 6px;
-}
-</style>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
-<div id="searchBar">
-  <input id="searchInput" placeholder="場所を検索（例：岡山）">
-  <button id="searchBtn">🔍</button>
-</div>
+<header>
+  <div class="search-box">
+    <input id="searchInput" type="text" placeholder="地名を検索（例：岡山）">
+    <button id="searchBtn">🔍</button>
+  </div>
+</header>
 
 <div id="container">
   <div id="map"></div>
-  <div id="info">ピンを選択してください</div>
+
+  <div id="info">
+    <h2>思い出</h2>
+
+    <textarea id="comment" placeholder="思い出を書こう"></textarea>
+
+    <input type="file" id="photoInput" accept="image/*" multiple>
+
+    <div class="photo-list" id="photoList"></div>
+
+    <button id="saveBtn">保存</button>
+    <button id="deleteBtn" class="danger">ピンを削除</button>
+  </div>
 </div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<script>
-/* ---------- 地図初期化 ---------- */
-const savedView = JSON.parse(localStorage.getItem("mapView"));
-const map = L.map("map").setView(
-  savedView ? [savedView.lat, savedView.lng] : [36.5, 138],
-  savedView ? savedView.zoom : 5
-);
-
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap"
-}).addTo(map);
-
-map.on("moveend", () => {
-  const c = map.getCenter();
-  localStorage.setItem("mapView", JSON.stringify({
-    lat: c.lat,
-    lng: c.lng,
-    zoom: map.getZoom()
-  }));
-});
-
-/* ---------- 赤ピン ---------- */
-const redIcon = L.icon({
-  iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png",
-  iconSize: [32, 32]
-});
-
-/* ---------- データ ---------- */
-let pins = JSON.parse(localStorage.getItem("pins") || "[]");
-let currentPin = null;
-let markers = [];
-
-/* ---------- 保存 ---------- */
-function savePins() {
-  localStorage.setItem("pins", JSON.stringify(pins));
-}
-
-/* ---------- 描画 ---------- */
-function renderPins() {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-
-  pins.forEach(pin => {
-    const marker = L.marker([pin.lat, pin.lng], { icon: redIcon }).addTo(map);
-    marker.on("click", () => showInfo(pin));
-    markers.push(marker);
-  });
-}
-
-/* ---------- 情報欄 ---------- */
-function showInfo(pin) {
-  currentPin = pin;
-
-  let html = `
-    <h3>思い出</h3>
-    <textarea id="comment" rows="4" placeholder="コメント">${pin.comment || ""}</textarea>
-    <br><br>
-    <input type="file" id="photoInput" multiple>
-    <div id="photos"></div>
-    <br>
-    <button onclick="saveInfo()">保存</button>
-    <button onclick="deletePin()">ピン削除</button>
-  `;
-
-  document.getElementById("info").innerHTML = html;
-
-  renderPhotos();
-
-  document.getElementById("photoInput").onchange = e => {
-    [...e.target.files].forEach(file => {
-      const reader = new FileReader();
-      reader.onload = ev => {
-        pin.photos.push(ev.target.result);
-        savePins();
-        renderPhotos();
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-}
-
-/* ---------- 写真表示 ---------- */
-function renderPhotos() {
-  const box = document.getElementById("photos");
-  box.innerHTML = "";
-
-  currentPin.photos.forEach((src, i) => {
-    const img = document.createElement("img");
-    img.src = src;
-    img.className = "photo";
-    img.onclick = () => {
-      if (confirm("写真を削除しますか？")) {
-        currentPin.photos.splice(i, 1);
-        savePins();
-        renderPhotos();
-      }
-    };
-    box.appendChild(img);
-  });
-}
-
-/* ---------- 保存 ---------- */
-function saveInfo() {
-  currentPin.comment = document.getElementById("comment").value;
-  savePins();
-  alert("保存しました");
-}
-
-/* ---------- 削除 ---------- */
-function deletePin() {
-  if (!confirm("ピンを削除しますか？")) return;
-  pins = pins.filter(p => p !== currentPin);
-  savePins();
-  document.getElementById("info").innerText = "ピンを選択してください";
-  renderPins();
-}
-
-/* ---------- ピン追加 ---------- */
-map.on("click", e => {
-  const pin = {
-    lat: e.latlng.lat,
-    lng: e.latlng.lng,
-    comment: "",
-    photos: []
-  };
-  pins.push(pin);
-  savePins();
-  renderPins();
-});
-
-/* ---------- 検索 ---------- */
-function searchPlace() {
-  const q = document.getElementById("searchInput").value.trim();
-  if (!q) return;
-
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
-    .then(r => r.json())
-    .then(d => {
-      if (d.length === 0) {
-        alert("見つかりませんでした");
-        return;
-      }
-      map.setView([d[0].lat, d[0].lon], 9);
-    });
-}
-
-document.getElementById("searchBtn").onclick = searchPlace;
-document.getElementById("searchInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") searchPlace();
-});
-
-/* ---------- 初期描画 ---------- */
-renderPins();
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
