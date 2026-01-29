@@ -5,114 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>思い出マップ</title>
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: sans-serif;
-}
+*{box-sizing:border-box}
+body{margin:0;font-family:sans-serif}
 
 /* ===== ヘッダー ===== */
-header {
-  height: 10vh;
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  gap: 8px;
-  background: #fff;
-  border-bottom: 1px solid #ddd;
+header{
+  height:10vh;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 10px;
+  border-bottom:1px solid #ddd;
 }
-
-header h1 {
-  font-size: 16px;
-  margin: 0;
-  white-space: nowrap;
-}
-
-#searchInput {
-  flex: 1;
-  padding: 6px;
-  font-size: 14px;
-}
-
-#searchBtn {
-  padding: 6px 10px;
-  font-size: 14px;
-  cursor: pointer;
-}
+header h1{font-size:16px;margin:0;white-space:nowrap}
+#searchInput{flex:1;padding:6px}
+#searchBtn{padding:6px 10px}
 
 /* ===== レイアウト ===== */
-#container {
-  height: 90vh;
-  display: flex;
-  flex-direction: column;
+#container{height:90vh;display:flex;flex-direction:column}
+#map{height:60%}
+#info{
+  height:40%;
+  padding:10px;
+  border-top:1px solid #ddd;
+  overflow-y:auto;
+  display:none;
 }
 
-#map {
-  height: 60%;
+/* ===== タグ ===== */
+.tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:6px 0;
 }
-
-#info {
-  height: 40%;
-  padding: 10px;
-  border-top: 1px solid #ddd;
-  overflow-y: auto;
-  background: #fff;
-  display: none;
+.tags label{
+  border:1px solid #ccc;
+  border-radius:4px;
+  padding:4px 6px;
+  font-size:12px;
+  cursor:pointer;
 }
+.tags input{margin-right:3px}
 
 /* ===== 写真 ===== */
-#photos {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 5px;
-  margin-top: 10px;
+#photos{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:5px;
+}
+#photos img{
+  width:100%;
+  height:60px;
+  object-fit:cover;
+  border-radius:4px;
+  cursor:pointer;
 }
 
-#photos img {
-  width: 100%;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-/* ===== ボタン ===== */
-button {
-  margin-top: 8px;
-  padding: 6px 10px;
-  cursor: pointer;
-}
-
-/* ===== PC用 ===== */
-@media (min-width: 769px) {
-  header {
-    height: 8vh;
-  }
-
-  #container {
-    height: 92vh;
-    flex-direction: row;
-  }
-
-  #map {
-    width: 70%;
-    height: 100%;
-  }
-
-  #info {
-    width: 30%;
-    height: 100%;
-    display: block;
-  }
+/* ===== PC ===== */
+@media(min-width:769px){
+  header{height:8vh}
+  #container{height:92vh;flex-direction:row}
+  #map{width:70%;height:100%}
+  #info{width:30%;height:100%;display:block}
 }
 </style>
 </head>
@@ -121,7 +79,7 @@ button {
 
 <header>
   <h1>思い出</h1>
-  <input id="searchInput" placeholder="地名を検索" />
+  <input id="searchInput" placeholder="地名を検索">
   <button id="searchBtn">🔍</button>
 </header>
 
@@ -130,9 +88,20 @@ button {
 
   <div id="info">
     <h3>思い出情報</h3>
+
+    <div class="tags">
+      <label><input type="checkbox" value="♨">温泉</label>
+      <label><input type="checkbox" value="⛩">神社</label>
+      <label><input type="checkbox" value="🏯">城</label>
+      <label><input type="checkbox" value="⛰">山</label>
+      <label><input type="checkbox" value="🌊">海</label>
+      <label><input type="checkbox" value="🍜">グルメ</label>
+      <label><input type="checkbox" value="🌅">絶景</label>
+    </div>
+
     <textarea id="comment" rows="3" placeholder="コメント"></textarea>
 
-    <input type="file" id="photoInput" accept="image/*" multiple />
+    <input type="file" id="photoInput" accept="image/*" multiple>
     <div id="photos"></div>
 
     <button id="saveBtn">保存</button>
@@ -143,108 +112,108 @@ button {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-const map = L.map("map").setView([35.0, 135.0], 5);
+const map=L.map("map").setView([35,135],5);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap",
-}).addTo(map);
-
-let pins = JSON.parse(localStorage.getItem("pins") || "[]");
-let currentPin = null;
-
-const redIcon = L.icon({
-  iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
+const redIcon=L.icon({
+  iconUrl:"https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+  iconSize:[32,32],
+  iconAnchor:[16,32]
 });
 
-function savePins() {
-  localStorage.setItem("pins", JSON.stringify(pins));
+let pins=JSON.parse(localStorage.getItem("pins")||"[]");
+let currentPin=null;
+
+function savePins(){localStorage.setItem("pins",JSON.stringify(pins))}
+
+function tagHTML(tags){
+  return tags.map(t=>`<span style="font-size:14px">${t}</span>`).join("");
 }
 
-function renderPins() {
-  pins.forEach(pin => {
-    const marker = L.marker(pin.latlng, { icon: redIcon }).addTo(map);
-    marker.on("click", () => selectPin(pin));
-    pin.marker = marker;
+function renderPins(){
+  pins.forEach(pin=>{
+    const marker=L.marker(pin.latlng,{icon:redIcon}).addTo(map);
+    marker.bindTooltip(tagHTML(pin.tags||[]),{permanent:true,offset:[0,-28]});
+    marker.on("click",()=>selectPin(pin));
+    pin.marker=marker;
   });
 }
 
-function selectPin(pin) {
-  currentPin = pin;
-  document.getElementById("info").style.display = "block";
-  document.getElementById("comment").value = pin.comment || "";
+function selectPin(pin){
+  currentPin=pin;
+  document.getElementById("info").style.display="block";
+  document.getElementById("comment").value=pin.comment||"";
+  document.querySelectorAll(".tags input").forEach(cb=>{
+    cb.checked=pin.tags?.includes(cb.value)||false;
+  });
   renderPhotos();
 }
 
-function renderPhotos() {
-  const photosDiv = document.getElementById("photos");
-  photosDiv.innerHTML = "";
-  (currentPin.photos || []).forEach((src, i) => {
-    const img = document.createElement("img");
-    img.src = src;
-    img.onclick = () => window.open(src);
-    photosDiv.appendChild(img);
+function renderPhotos(){
+  const div=document.getElementById("photos");
+  div.innerHTML="";
+  (currentPin.photos||[]).forEach(src=>{
+    const img=document.createElement("img");
+    img.src=src;
+    img.onclick=()=>window.open(src);
+    div.appendChild(img);
   });
 }
 
-map.on("click", e => {
-  const pin = {
-    latlng: e.latlng,
-    comment: "",
-    photos: []
-  };
+map.on("click",e=>{
+  const pin={latlng:e.latlng,comment:"",photos:[],tags:[]};
   pins.push(pin);
-  const marker = L.marker(e.latlng, { icon: redIcon }).addTo(map);
-  marker.on("click", () => selectPin(pin));
-  pin.marker = marker;
+  const marker=L.marker(e.latlng,{icon:redIcon}).addTo(map);
+  marker.on("click",()=>selectPin(pin));
+  pin.marker=marker;
   savePins();
   selectPin(pin);
 });
 
-document.getElementById("saveBtn").onclick = () => {
-  if (!currentPin) return;
-  currentPin.comment = document.getElementById("comment").value;
+document.getElementById("saveBtn").onclick=()=>{
+  if(!currentPin)return;
+  currentPin.comment=document.getElementById("comment").value;
+  currentPin.tags=[...document.querySelectorAll(".tags input:checked")].map(cb=>cb.value);
+  currentPin.marker.setTooltipContent(tagHTML(currentPin.tags));
   savePins();
 };
 
-document.getElementById("deleteBtn").onclick = () => {
-  if (!currentPin) return;
+document.getElementById("deleteBtn").onclick=()=>{
+  if(!currentPin)return;
   map.removeLayer(currentPin.marker);
-  pins = pins.filter(p => p !== currentPin);
-  currentPin = null;
-  document.getElementById("info").style.display = "none";
+  pins=pins.filter(p=>p!==currentPin);
+  currentPin=null;
+  document.getElementById("info").style.display="none";
   savePins();
 };
 
-document.getElementById("photoInput").onchange = e => {
-  if (!currentPin) return;
-  const files = Array.from(e.target.files).slice(0, 5);
-  currentPin.photos = [];
-  files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = ev => {
+document.getElementById("photoInput").onchange=e=>{
+  if(!currentPin)return;
+  const files=[...e.target.files].slice(0,5);
+  currentPin.photos=[];
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{
       currentPin.photos.push(ev.target.result);
       renderPhotos();
       savePins();
     };
-    reader.readAsDataURL(file);
+    r.readAsDataURL(f);
   });
 };
 
-document.getElementById("searchBtn").onclick = () => {
-  const q = document.getElementById("searchInput").value;
-  if (!q) return;
+document.getElementById("searchBtn").onclick=()=>{
+  const q=searchInput.value;
+  if(!q)return;
   fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`)
-    .then(res => res.json())
-    .then(data => {
-      if (!data[0]) return;
-      map.setView([data[0].lat, data[0].lon], data[0].type === "administrative" ? 9 : 13);
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d[0])return;
+      map.setView([d[0].lat,d[0].lon],9);
     });
 };
 
 renderPins();
 </script>
-
 </body>
 </html>
