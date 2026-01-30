@@ -1,70 +1,129 @@
-/* ===== ピン共通 ===== */
-.custom-pin {
-  background: #e53935; /* 赤 */
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  position: relative;
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: sans-serif;
+}
+
+#searchBar {
+  height: 5vh;
+  display: flex;
+  padding: 4px;
+  background: #fff;
+  z-index: 1000;
+}
+
+#searchInput {
+  flex: 9;
+  font-size: 14px;
+}
+
+#searchBtn {
+  flex: 1;
+  font-size: 16px;
+}
+
+#app {
+  display: flex;
+  height: 95vh;
+}
+
+#map {
+  flex: 7;
+}
+
+#info {
+  flex: 3;
+  padding: 10px;
+  overflow-y: auto;
+  border-left: 1px solid #ccc;
+}
+
+.section {
+  margin-bottom: 10px;
+}
+
+#tags label,
+#levelSelect label {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+textarea {
+  width: 100%;
+  height: 60px;
+}
+
+#photos img {
+  width: 18%;
+  margin: 2px;
   cursor: pointer;
 }
 
-/* 中の黒点 */
-.custom-pin::after {
+.buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.danger {
+  background: #e53935;
+  color: white;
+}
+
+/* ピン */
+.pin {
+  background: #e53935;
+  width: 100%;
+  height: 100%;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  position: relative;
+}
+
+.pin::after {
   content: "";
   width: 40%;
   height: 40%;
-  background: #000;
+  background: black;
+  border-radius: 50%;
   position: absolute;
   top: 30%;
   left: 30%;
-  border-radius: 50%;
 }
 
-/* サイズレベル */
-.pin-level-1 { width: 20px; height: 20px; }
-.pin-level-2 { width: 26px; height: 26px; }
-.pin-level-3 { width: 32px; height: 32px; }
-.pin-level-4 { width: 38px; height: 38px; }
-.pin-level-5 { width: 44px; height: 44px; }
-
-/* ===== タグアイコン（白背景なし） ===== */
-.pin-tag {
-  position: absolute;
-  top: -18px;
-  right: -18px;
-  font-size: 20px;
-  background: none;   /* ← 白い丸を消す */
-  border-radius: 0;
+/* レベル5だけ光る */
+.glow {
+  animation: glow 1.5s infinite;
 }
 
-/* ===== レベル5 キラキラ ===== */
-.glow-pin::before,
-.glow-pin::after {
-  content: "✨";
-  position: absolute;
-  top: -22px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 14px;
-  animation: sparkle 1.5s infinite;
-  pointer-events: none;
+@keyframes glow {
+  0% { box-shadow: 0 0 5px gold; }
+  50% { box-shadow: 0 0 12px gold; }
+  100% { box-shadow: 0 0 5px gold; }
 }
 
-.glow-pin::after {
-  content: "✦";
-  top: -30px;
-  left: 60%;
-  font-size: 10px;
-  animation: sparkle2 2s infinite;
-}
+/* スマホ */
+@media (max-width: 768px) {
+  #app {
+    flex-direction: column;
+  }
 
-@keyframes sparkle {
-  0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
-  50% { opacity: 1; transform: translate(-50%, -6px) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -12px) scale(0.5); }
-}
+  #map {
+    flex: none;
+    height: 100%;
+  }
 
-@keyframes sparkle2 {
-  0% { opacity: 0; transform: translateY(0) scale(0.5); }
-  50% { opacity: 0.8; transform: translateY(-8px) scale(1); }
-  100% { opacity: 0; transform: translateY(-16px) scale(0.5); }
+  #info {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    display: none;
+    background: white;
+    z-index: 2000;
+  }
+
+  #info.show {
+    display: block;
+  }
 }
