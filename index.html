@@ -1,392 +1,69 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>思い出マップ</title>
+  <meta charset="UTF-8" />
+  <title>Travel Log Map 🇯🇵</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
-
-<style>
-html, body {
-  margin: 0;
-  height: 100%;
-  font-family: sans-serif;
-}
-
-#app {
-  display: flex;
-  height: 100%;
-}
-
-/* ===== 地図 ===== */
-#map {
-  width: 70%;
-  height: 100%;
-}
-
-/* ===== 情報欄 ===== */
-#info {
-  width: 30%;
-  padding: 10px;
-  box-sizing: border-box;
-  border-left: 1px solid #ddd;
-  overflow-y: auto;
-  display: none;
-}
-
-h3 {
-  margin-top: 0;
-}
-
-/* ===== 検索 ===== */
-#search-bar {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  width: 90%;
-  max-width: 400px;
-  z-index: 1000;
-}
-
-#searchInput {
-  flex: 9;
-  padding: 8px;
-}
-
-#searchBtn {
-  flex: 1;
-  font-size: 18px;
-}
-
-/* ===== レベル ===== */
-.rating-buttons {
-  display: flex;
-  gap: 6px;
-}
-
-.rating-buttons button {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 2px solid #e53935;
-  background: white;
-  color: #e53935;
-  font-weight: bold;
-}
-
-.rating-buttons button.active {
-  background: #e53935;
-  color: white;
-}
-
-/* ===== タグ ===== */
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tags label {
-  border: 1px solid #ccc;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* ===== 写真 ===== */
-.photo-preview {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.photo-wrapper {
-  position: relative;
-}
-
-.photo-preview img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.photo-delete {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 18px;
-  height: 18px;
-  background: rgba(0,0,0,0.7);
-  color: white;
-  border-radius: 50%;
-  font-size: 12px;
-  line-height: 18px;
-  text-align: center;
-  cursor: pointer;
-}
-
-/* ===== 写真拡大 ===== */
-#photoModal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-#photoModal img {
-  max-width: 90%;
-  max-height: 90%;
-}
-
-#closeModal {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  color: white;
-  font-size: 30px;
-  cursor: pointer;
-}
-
-/* ===== ピン ===== */
-.red-pin {
-  background: #e53935;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  position: relative;
-}
-
-.red-pin::after {
-  content: "";
-  width: 40%;
-  height: 40%;
-  background: black;
-  border-radius: 50%;
-  position: absolute;
-  top: 30%;
-  left: 30%;
-}
-
-.glow {
-  animation: sparkle 1.5s infinite;
-}
-
-@keyframes sparkle {
-  0% { box-shadow: 0 0 4px gold; }
-  50% { box-shadow: 0 0 12px gold; }
-  100% { box-shadow: 0 0 4px gold; }
-}
-</style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
-
 <body>
 
-<div id="search-bar">
-  <input id="searchInput" placeholder="場所を検索" />
+<header id="searchBar">
+  <input id="searchInput" type="text" placeholder="場所を検索">
   <button id="searchBtn">🔍</button>
-</div>
+</header>
 
 <div id="app">
   <div id="map"></div>
 
-  <div id="info">
-    <h3>思い出</h3>
+  <aside id="info">
+    <h2>思い出</h2>
 
-    <p>レベル</p>
-    <div class="rating-buttons" id="rating"></div>
+    <div class="section">
+      <label>評価</label>
+      <div id="levelSelect">
+        <label><input type="radio" name="level" value="1">1</label>
+        <label><input type="radio" name="level" value="2">2</label>
+        <label><input type="radio" name="level" value="3">3</label>
+        <label><input type="radio" name="level" value="4">4</label>
+        <label><input type="radio" name="level" value="5">5</label>
+      </div>
+    </div>
 
-    <p>タグ</p>
-    <div class="tags" id="tags"></div>
+    <div class="section">
+      <label>タグ</label>
+      <div id="tags">
+        <label><input type="checkbox" value="onsen">♨️ 温泉</label>
+        <label><input type="checkbox" value="jinja">⛩ 神社</label>
+        <label><input type="checkbox" value="castle">🏯 城</label>
+        <label><input type="checkbox" value="mountain">⛰ 山</label>
+        <label><input type="checkbox" value="sea">🌊 海</label>
+        <label><input type="checkbox" value="food">🍜 グルメ</label>
+        <label><input type="checkbox" value="view">🌅 絶景</label>
+      </div>
+    </div>
 
-    <p>コメント</p>
-    <textarea id="comment" rows="3" style="width:100%"></textarea>
+    <div class="section">
+      <label>コメント</label>
+      <textarea id="comment"></textarea>
+    </div>
 
-    <p>写真</p>
-    <input type="file" id="photoInput" accept="image/*" multiple />
-    <div class="photo-preview" id="photoPreview"></div>
+    <div class="section">
+      <label>写真（最大5枚）</label>
+      <input type="file" id="photoInput" multiple accept="image/*">
+      <div id="photos"></div>
+    </div>
 
-    <button id="deletePin" style="margin-top:10px;color:red">ピン削除</button>
-  </div>
+    <div class="buttons">
+      <button id="saveBtn">保存</button>
+      <button id="deleteBtn" class="danger">ピン削除</button>
+    </div>
+  </aside>
 </div>
 
-<div id="photoModal">
-  <span id="closeModal">×</span>
-  <img id="modalImage" />
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-const map = L.map("map").setView([35, 135], 5);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-let memories = JSON.parse(localStorage.getItem("memories") || "[]");
-let current = null;
-let markers = [];
-
-function saveAll() {
-  localStorage.setItem("memories", JSON.stringify(memories));
-}
-
-function createIcon(level) {
-  const size = 18 + level * 6;
-  return L.divIcon({
-    html: `<div class="red-pin ${level==5?'glow':''}" style="width:${size}px;height:${size}px"></div>`,
-    className: "",
-    iconSize: [size, size],
-    iconAnchor: [size/2, size]
-  });
-}
-
-function renderMarkers() {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-
-  memories.forEach(m => {
-    const marker = L.marker(m.latlng, { icon: createIcon(m.level) }).addTo(map);
-    marker.on("click", () => openInfo(m));
-    markers.push(marker);
-  });
-}
-
-map.on("click", e => {
-  const mem = {
-    latlng: e.latlng,
-    level: 3,
-    tags: [],
-    comment: "",
-    photos: []
-  };
-  memories.push(mem);
-  saveAll();
-  renderMarkers();
-  openInfo(mem);
-});
-
-function openInfo(mem) {
-  current = mem;
-  document.getElementById("info").style.display = "block";
-  document.getElementById("comment").value = mem.comment;
-  renderRating();
-  renderTags();
-  renderPhotos();
-}
-
-function renderRating() {
-  const box = document.getElementById("rating");
-  box.innerHTML = "";
-  for (let i=1;i<=5;i++) {
-    const b = document.createElement("button");
-    b.textContent = i;
-    if (current.level == i) b.classList.add("active");
-    b.onclick = () => {
-      current.level = i;
-      saveAll();
-      renderMarkers();
-      renderRating();
-    };
-    box.appendChild(b);
-  }
-}
-
-const tagList = ["♨️温泉","⛩神社","🏯城","⛰山","🌊海","🍜グルメ","🌄絶景"];
-function renderTags() {
-  const box = document.getElementById("tags");
-  box.innerHTML = "";
-  tagList.forEach(t => {
-    const label = document.createElement("label");
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = current.tags.includes(t);
-    cb.onchange = () => {
-      if (cb.checked) current.tags.push(t);
-      else current.tags = current.tags.filter(x=>x!==t);
-      saveAll();
-    };
-    label.append(cb, t);
-    box.appendChild(label);
-  });
-}
-
-document.getElementById("comment").oninput = e => {
-  current.comment = e.target.value;
-  saveAll();
-};
-
-const photoInput = document.getElementById("photoInput");
-photoInput.onchange = () => {
-  [...photoInput.files].forEach(f => {
-    if (current.photos.length >= 5) return;
-    const r = new FileReader();
-    r.onload = e => {
-      current.photos.push(e.target.result);
-      saveAll();
-      renderPhotos();
-    };
-    r.readAsDataURL(f);
-  });
-  photoInput.value = "";
-};
-
-function renderPhotos() {
-  const box = document.getElementById("photoPreview");
-  box.innerHTML = "";
-  current.photos.forEach((src,i) => {
-    const w = document.createElement("div");
-    w.className = "photo-wrapper";
-    const img = document.createElement("img");
-    img.src = src;
-    img.onclick = ()=>openModal(src);
-    const d = document.createElement("div");
-    d.className = "photo-delete";
-    d.textContent = "×";
-    d.onclick = e => {
-      e.stopPropagation();
-      if(confirm("削除しますか？")) {
-        current.photos.splice(i,1);
-        saveAll();
-        renderPhotos();
-      }
-    };
-    w.append(img,d);
-    box.appendChild(w);
-  });
-}
-
-function openModal(src){
-  modalImage.src = src;
-  photoModal.style.display="flex";
-}
-
-closeModal.onclick = ()=>photoModal.style.display="none";
-
-document.getElementById("deletePin").onclick = ()=>{
-  if(!confirm("このピンを削除しますか？")) return;
-  memories = memories.filter(m=>m!==current);
-  saveAll();
-  document.getElementById("info").style.display="none";
-  renderMarkers();
-};
-
-document.getElementById("searchBtn").onclick = async ()=>{
-  const q = searchInput.value;
-  if(!q) return;
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
-  const data = await res.json();
-  if(!data.length) return;
-  map.setView([data[0].lat, data[0].lon], data[0].type==="administrative"?8:12);
-};
-
-renderMarkers();
-</script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
