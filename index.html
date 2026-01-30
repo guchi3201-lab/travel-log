@@ -2,167 +2,237 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>スポット記録マップ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行の記録マップ</title>
 
-<!-- Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
 <style>
-body { margin:0; font-family: sans-serif; }
-#map { height: 50vh; }
-
-.panel {
-  padding: 12px;
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.section {
-  margin-bottom: 12px;
+#searchBar {
+  height: 5vh;
+  display: flex;
+  border-bottom: 1px solid #ccc;
+}
+
+#searchInput {
+  flex: 1;
+  border: none;
+  padding: 8px;
+}
+
+#searchBtn {
+  width: 50px;
+  border: none;
+  background: #f0f0f0;
+  font-size: 18px;
+}
+
+#container {
+  display: flex;
+  height: 95vh;
+}
+
+#map {
+  flex: 1;
+}
+
+#info {
+  width: 320px;
+  border-left: 1px solid #ccc;
+  padding: 10px;
+  overflow-y: auto;
 }
 
 label {
-  display: inline-flex;
-  align-items: center;
-  margin: 4px 8px 4px 0;
-  border: 1px solid #ccc;
-  padding: 4px 6px;
-  border-radius: 4px;
-  font-size: 14px;
+  display: block;
+  margin-top: 8px;
 }
 
-input[type="checkbox"] {
-  margin-right: 4px;
+.rating span {
+  border: 1px solid #aaa;
+  padding: 5px;
+  margin-right: 5px;
+  cursor: pointer;
 }
 
-textarea {
-  width: 100%;
-  min-height: 60px;
+.rating span.active {
+  background: #333;
+  color: white;
 }
 
-.photos input {
-  margin-bottom: 6px;
+.tags span {
+  border: 1px solid #aaa;
+  padding: 5px;
+  margin: 3px;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.tags span.active {
+  background: #555;
+  color: white;
 }
 
 button {
+  margin-top: 10px;
   width: 100%;
-  padding: 10px;
-  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  #container {
+    flex-direction: column;
+  }
+  #info {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #ccc;
+  }
 }
 </style>
 </head>
+
 <body>
 
-<div id="map"></div>
-
-<div class="panel">
-
-  <div class="section">
-    <strong>場所名：</strong> 太宰府天満宮
-  </div>
-
-  <div class="section">
-    <strong>評価</strong><br>
-    <label><input type="checkbox" value="1">★</label>
-    <label><input type="checkbox" value="2">★★</label>
-    <label><input type="checkbox" value="3">★★★</label>
-    <label><input type="checkbox" value="4">★★★★</label>
-    <label><input type="checkbox" value="5">★★★★★</label>
-  </div>
-
-  <div class="section">
-    <strong>タグ</strong><br>
-    <label><input type="checkbox" value="温泉">♨ 温泉</label>
-    <label><input type="checkbox" value="グルメ">🍴 グルメ</label>
-    <label><input type="checkbox" value="山">⛰ 山</label>
-    <label><input type="checkbox" value="海">🌊 海</label>
-    <label><input type="checkbox" value="城">🏯 城</label>
-    <label><input type="checkbox" value="絶景">✨ 絶景</label>
-  </div>
-
-  <div class="section">
-    <strong>コメント</strong>
-    <textarea id="comment" placeholder="感想を書く"></textarea>
-  </div>
-
-  <div class="section photos">
-    <strong>写真（最大5枚）</strong><br>
-    <input type="file" accept="image/*" multiple id="photos">
-  </div>
-
-  <button onclick="saveSpot()">保存</button>
+<div id="searchBar">
+  <input id="searchInput" placeholder="場所検索" />
+  <button id="searchBtn">🔍</button>
 </div>
 
+<div id="container">
+  <div id="map"></div>
+
+  <div id="info">
+    <label>場所名
+      <input id="placeName" />
+    </label>
+
+    <label>評価</label>
+    <div class="rating" id="rating"></div>
+
+    <label>タグ</label>
+    <div class="tags" id="tags"></div>
+
+    <label>コメント
+      <textarea id="comment"></textarea>
+    </label>
+
+    <label>写真（最大5枚）
+      <input type="file" id="photos" multiple accept="image/*" />
+    </label>
+
+    <button onclick="savePin()">保存</button>
+    <button onclick="deletePin()">削除</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
-const map = L.map('map').setView([33.5215, 130.5341], 15);
+const map = L.map('map').setView([35.6586, 139.7454], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// 地図
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap'
-}).addTo(map);
+let currentMarker = null;
+let selectedRating = 0;
+let selectedTags = [];
 
-let marker;
+const tagList = [
+  { name: "温泉", icon: "♨️" },
+  { name: "グルメ", icon: "🍴" },
+  { name: "山", icon: "⛰" },
+  { name: "海", icon: "🌊" },
+  { name: "城", icon: "🏯" },
+  { name: "絶景", icon: "🌅" }
+];
 
-// 評価 → 色
-function ratingColor(r) {
-  return [
-    '#ddd','#cce5ff','#99ccff','#66b2ff','#3399ff','#0066cc'
-  ][r];
+// rating
+const ratingDiv = document.getElementById("rating");
+for (let i = 1; i <= 5; i++) {
+  const s = document.createElement("span");
+  s.textContent = i;
+  s.onclick = () => {
+    selectedRating = i;
+    [...ratingDiv.children].forEach(c => c.classList.remove("active"));
+    s.classList.add("active");
+  };
+  ratingDiv.appendChild(s);
 }
 
-// 既存データ読み込み
-const saved = JSON.parse(localStorage.getItem('spotData'));
-if (saved) {
-  marker = L.circleMarker(saved.latlng, {
-    radius: 10,
-    color: ratingColor(saved.rating),
-    fillOpacity: 1
-  }).addTo(map);
-}
+// tags
+const tagDiv = document.getElementById("tags");
+tagList.forEach(t => {
+  const s = document.createElement("span");
+  s.textContent = `${t.icon} ${t.name}`;
+  s.onclick = () => {
+    s.classList.toggle("active");
+    selectedTags = [...tagDiv.children]
+      .filter(c => c.classList.contains("active"))
+      .map(c => c.textContent);
+  };
+  tagDiv.appendChild(s);
+});
 
-// 保存処理
-function saveSpot() {
-  const rating = [...document.querySelectorAll('input[type="checkbox"][value*="★"]')]
-    .filter(c => c.checked)
-    .map(c => c.value)
-    .pop() || 1;
+map.on('click', e => {
+  if (currentMarker) map.removeLayer(currentMarker);
+  currentMarker = L.marker(e.latlng, { icon: pinIcon(1) }).addTo(map);
+});
 
-  const tags = [...document.querySelectorAll('input[type="checkbox"]')]
-    .filter(c => c.checked && !c.value.includes('★'))
-    .map(c => c.value);
+function pinIcon(rating) {
+  let color = `rgba(255,0,0,${rating / 5})`;
+  if (rating === 5) {
+    color = "linear-gradient(45deg, red, orange, yellow, green, blue, purple)";
+  }
 
-  const comment = document.getElementById('comment').value;
-
-  const files = [...document.getElementById('photos').files].slice(0,5);
-  const readers = files.map(f => new Promise(res => {
-    const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.readAsDataURL(f);
-  }));
-
-  Promise.all(readers).then(images => {
-    const data = {
-      name: "太宰府天満宮",
-      latlng: map.getCenter(),
-      rating,
-      tags,
-      comment,
-      images
-    };
-
-    localStorage.setItem('spotData', JSON.stringify(data));
-
-    if (marker) map.removeLayer(marker);
-
-    marker = L.circleMarker(data.latlng, {
-      radius: 10,
-      color: ratingColor(rating),
-      fillOpacity: 1
-    }).addTo(map);
-
-    alert("保存しました");
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width: 24px;
+        height: 24px;
+        background:${color};
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border:1px solid #333;
+      "></div>`
   });
 }
+
+function savePin() {
+  if (!currentMarker) return;
+  const data = {
+    latlng: currentMarker.getLatLng(),
+    name: placeName.value,
+    rating: selectedRating,
+    tags: selectedTags,
+    comment: comment.value
+  };
+  localStorage.setItem("travelPin", JSON.stringify(data));
+  alert("保存しました");
+}
+
+function deletePin() {
+  localStorage.removeItem("travelPin");
+  if (currentMarker) map.removeLayer(currentMarker);
+  currentMarker = null;
+}
+
+window.onload = () => {
+  const data = JSON.parse(localStorage.getItem("travelPin"));
+  if (!data) return;
+  currentMarker = L.marker(data.latlng, {
+    icon: pinIcon(data.rating)
+  }).addTo(map);
+  placeName.value = data.name;
+  comment.value = data.comment;
+};
 </script>
 
 </body>
