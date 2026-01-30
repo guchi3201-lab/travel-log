@@ -5,65 +5,63 @@
   <title>Travel Log Map 🇯🇵</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <link rel="stylesheet" href="style.css"/>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+  <!-- 検索バー -->
+  <header>
+    <input id="searchInput" placeholder="場所を検索" />
+    <button id="searchBtn">🔍</button>
+  </header>
 
-<header id="searchBar">
-  <input id="searchInput" type="text" placeholder="場所を検索">
-  <button id="searchBtn">🔍</button>
-</header>
+  <!-- メイン -->
+  <main>
+    <div id="map"></div>
 
-<div id="app">
-  <div id="map"></div>
+    <aside id="info">
+      <h2>思い出</h2>
 
-  <aside id="info">
-    <h2>思い出</h2>
+      <label>場所名</label>
+      <input id="placeName" />
 
-    <div class="section">
       <label>評価</label>
-      <div id="levelSelect">
-        <label><input type="radio" name="level" value="1">1</label>
-        <label><input type="radio" name="level" value="2">2</label>
-        <label><input type="radio" name="level" value="3">3</label>
-        <label><input type="radio" name="level" value="4">4</label>
-        <label><input type="radio" name="level" value="5">5</label>
+      <div id="levels">
+        <label><input type="radio" name="level" value="1" />1</label>
+        <label><input type="radio" name="level" value="2" />2</label>
+        <label><input type="radio" name="level" value="3" />3</label>
+        <label><input type="radio" name="level" value="4" />4</label>
+        <label><input type="radio" name="level" value="5" />5</label>
       </div>
-    </div>
 
-    <div class="section">
       <label>タグ</label>
       <div id="tags">
-        <label><input type="checkbox" value="onsen">♨️ 温泉</label>
-        <label><input type="checkbox" value="jinja">⛩ 神社</label>
-        <label><input type="checkbox" value="castle">🏯 城</label>
-        <label><input type="checkbox" value="mountain">⛰ 山</label>
-        <label><input type="checkbox" value="sea">🌊 海</label>
-        <label><input type="checkbox" value="food">🍜 グルメ</label>
-        <label><input type="checkbox" value="view">🌅 絶景</label>
+        <label><input type="checkbox" value="onsen" />♨️ 温泉</label>
+        <label><input type="checkbox" value="shrine" />⛩ 神社</label>
+        <label><input type="checkbox" value="castle" />🏯 城</label>
+        <label><input type="checkbox" value="mountain" />⛰ 山</label>
+        <label><input type="checkbox" value="sea" />🌊 海</label>
+        <label><input type="checkbox" value="food" />🍜 グルメ</label>
+        <label><input type="checkbox" value="view" />🌅 絶景</label>
       </div>
-    </div>
 
-    <div class="section">
       <label>コメント</label>
       <textarea id="comment"></textarea>
-    </div>
 
-    <div class="section">
       <label>写真（最大5枚）</label>
-      <input type="file" id="photoInput" multiple accept="image/*">
+      <input type="file" id="photoInput" multiple accept="image/*" />
       <div id="photos"></div>
-    </div>
 
-    <div class="buttons">
       <button id="saveBtn">保存</button>
       <button id="deleteBtn" class="danger">ピン削除</button>
-    </div>
-  </aside>
-</div>
+    </aside>
+  </main>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="script.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
