@@ -1,193 +1,65 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>温泉マップ</title>
+  <meta charset="UTF-8" />
+  <title>旅行の記録マップ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
-
-<style>
-html, body {
-  margin: 0;
-  height: 100%;
-  font-family: sans-serif;
-}
-
-/* 検索バー（高さ5%） */
-#search {
-  height: 5vh;
-  padding: 6px;
-  border: none;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* レイアウト */
-#container {
-  display: flex;
-  height: 95vh;
-}
-
-#map {
-  flex: 1;
-}
-
-/* 情報欄 */
-#info {
-  width: 320px;
-  padding: 10px;
-  border-left: 1px solid #ccc;
-  display: none;
-}
-
-#info input, #info textarea {
-  width: 100%;
-  margin-bottom: 6px;
-}
-
-/* 評価タグ */
-.rating span {
-  padding: 4px 8px;
-  border: 1px solid #ccc;
-  margin-right: 4px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.rating .active {
-  background: #ffdddd;
-}
-
-/* 写真 */
-.photo {
-  position: relative;
-  margin-top: 5px;
-}
-.photo button {
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-/* ピン */
-.pin {
-  border-radius: 50%;
-  background: red;
-}
-
-.glow {
-  animation: rainbow 2s linear infinite;
-}
-
-@keyframes rainbow {
-  0% { box-shadow: 0 0 8px red; }
-  25% { box-shadow: 0 0 8px orange; }
-  50% { box-shadow: 0 0 8px green; }
-  75% { box-shadow: 0 0 8px blue; }
-  100% { box-shadow: 0 0 8px violet; }
-}
-
-/* PC表示 */
-@media (min-width: 768px) {
-  #info {
-    display: block;
-  }
-}
-
-/* スマホ表示 */
-@media (max-width: 767px) {
-  #container {
-    flex-direction: column;
-  }
-  #info {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid #ccc;
-    display: block;
-  }
-}
-</style>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
+  <!-- 検索バー -->
+  <header>
+    <input id="searchInput" placeholder="場所を検索" />
+    <button id="searchBtn">🔍</button>
+  </header>
 
-<input id="search" placeholder="検索..." />
+  <!-- メイン -->
+  <main>
+    <div id="map"></div>
 
-<div id="container">
-  <div id="map"></div>
+    <!-- 情報欄 -->
+    <aside id="info">
+      <h2>旅の記録</h2>
 
-  <div id="info">
-    <h3>情報入力</h3>
+      <label>場所名</label>
+      <input id="placeName" placeholder="例：清水寺" />
 
-    <input id="placeName" placeholder="行った場所の名前" />
+      <label>評価</label>
+      <div id="rating">
+        <label><input type="radio" name="rate" value="1">1</label>
+        <label><input type="radio" name="rate" value="2">2</label>
+        <label><input type="radio" name="rate" value="3" checked>3</label>
+        <label><input type="radio" name="rate" value="4">4</label>
+        <label><input type="radio" name="rate" value="5">5</label>
+      </div>
 
-    <div class="rating" id="rating">
-      <span data-r="1">1</span>
-      <span data-r="2">2</span>
-      <span data-r="3">3</span>
-      <span data-r="4">4</span>
-      <span data-r="5">5</span>
-    </div>
+      <label>タグ</label>
+      <div id="tags">
+        <label><input type="checkbox" value="onsen">♨️ 温泉</label>
+        <label><input type="checkbox" value="shrine">⛩ 神社</label>
+        <label><input type="checkbox" value="castle">🏯 城</label>
+        <label><input type="checkbox" value="mountain">⛰ 山</label>
+        <label><input type="checkbox" value="sea">🌊 海</label>
+        <label><input type="checkbox" value="food">🍜 グルメ</label>
+        <label><input type="checkbox" value="view">🌅 絶景</label>
+      </div>
 
-    <input type="file" id="photoInput" />
-    <div id="photos"></div>
-  </div>
-</div>
+      <label>写真（最大5枚）</label>
+      <input type="file" id="photoInput" multiple accept="image/*" />
+      <div id="photos"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <button id="saveBtn">保存</button>
+      <button id="deleteBtn" class="danger">ピン削除</button>
+    </aside>
+  </main>
 
-<script>
-const map = L.map('map').setView([35.6812, 139.7671], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap'
-}).addTo(map);
-
-let currentRating = 1;
-let currentMarker = null;
-
-// 評価選択
-document.querySelectorAll('#rating span').forEach(span => {
-  span.onclick = () => {
-    document.querySelectorAll('#rating span').forEach(s => s.classList.remove('active'));
-    span.classList.add('active');
-    currentRating = Number(span.dataset.r);
-  };
-});
-
-// マップクリックでピン追加
-map.on('click', e => {
-  if (currentMarker) map.removeLayer(currentMarker);
-
-  const size = 12 + currentRating * 4;
-
-  const pin = L.divIcon({
-    className: '',
-    html: `<div class="pin ${currentRating === 5 ? 'glow' : ''}" 
-      style="width:${size}px;height:${size}px;"></div>`
-  });
-
-  currentMarker = L.marker(e.latlng, { icon: pin }).addTo(map);
-});
-
-// 写真追加・削除
-document.getElementById('photoInput').onchange = e => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const url = URL.createObjectURL(file);
-  const div = document.createElement('div');
-  div.className = 'photo';
-  div.innerHTML = `<img src="${url}" width="100%"><button>×</button>`;
-  div.querySelector('button').onclick = () => div.remove();
-  document.getElementById('photos').appendChild(div);
-
-  e.target.value = '';
-};
-</script>
-
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
