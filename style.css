@@ -1,86 +1,70 @@
-html, body {
-  margin: 0;
-  height: 100%;
-  font-family: sans-serif;
-}
-
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #fff;
-  z-index: 1000;
-}
-
-h1 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.search-box {
-  display: flex;
-}
-
-.search-box input {
-  padding: 4px;
-}
-
-#map {
-  height: calc(100% - 48px);
-}
-
-#infoPanel {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #fff;
-  padding: 10px;
-  max-height: 50%;
-  overflow-y: auto;
-  border-top: 1px solid #ccc;
-}
-
-.hidden {
-  display: none;
-}
-
-#comment {
-  width: 100%;
-  height: 60px;
-}
-
-#photoList {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 5px;
-  margin-top: 8px;
-}
-
-#photoList img {
-  width: 100%;
-  height: 60px;
-  object-fit: cover;
+/* ===== ピン共通 ===== */
+.custom-pin {
+  background: #e53935; /* 赤 */
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  position: relative;
   cursor: pointer;
 }
 
-.buttons {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
+/* 中の黒点 */
+.custom-pin::after {
+  content: "";
+  width: 40%;
+  height: 40%;
+  background: #000;
+  position: absolute;
+  top: 30%;
+  left: 30%;
+  border-radius: 50%;
 }
 
-#modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* サイズレベル */
+.pin-level-1 { width: 20px; height: 20px; }
+.pin-level-2 { width: 26px; height: 26px; }
+.pin-level-3 { width: 32px; height: 32px; }
+.pin-level-4 { width: 38px; height: 38px; }
+.pin-level-5 { width: 44px; height: 44px; }
+
+/* ===== タグアイコン（白背景なし） ===== */
+.pin-tag {
+  position: absolute;
+  top: -18px;
+  right: -18px;
+  font-size: 20px;
+  background: none;   /* ← 白い丸を消す */
+  border-radius: 0;
 }
 
-#modal img {
-  max-width: 90%;
-  max-height: 90%;
+/* ===== レベル5 キラキラ ===== */
+.glow-pin::before,
+.glow-pin::after {
+  content: "✨";
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  animation: sparkle 1.5s infinite;
+  pointer-events: none;
+}
+
+.glow-pin::after {
+  content: "✦";
+  top: -30px;
+  left: 60%;
+  font-size: 10px;
+  animation: sparkle2 2s infinite;
+}
+
+@keyframes sparkle {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
+  50% { opacity: 1; transform: translate(-50%, -6px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -12px) scale(0.5); }
+}
+
+@keyframes sparkle2 {
+  0% { opacity: 0; transform: translateY(0) scale(0.5); }
+  50% { opacity: 0.8; transform: translateY(-8px) scale(1); }
+  100% { opacity: 0; transform: translateY(-16px) scale(0.5); }
 }
