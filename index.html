@@ -1,103 +1,140 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>旅行記録マップ</title>
+<meta charset="UTF-8">
+<title>旅行の記録マップ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-  html, body {
-    margin: 0;
-    height: 100%;
-  }
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
 
-  body {
-    display: flex;
-    flex-direction: column;
-    font-family: sans-serif;
-  }
+/* ===== レイアウト ===== */
+#searchBar {
+  height: 5vh;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
 
-  /* 検索欄（5%） */
-  #search {
-    height: 5vh;
-    padding: 6px 10px;
-    border: none;
-    border-bottom: 1px solid #ddd;
-    font-size: 14px;
-  }
+#searchInput {
+  flex: 1;
+  padding: 6px;
+  font-size: 14px;
+}
 
-  /* 全体 */
+#searchBtn {
+  margin-left: 6px;
+  font-size: 18px;
+}
+
+#container {
+  display: flex;
+  height: 95vh;
+}
+
+#map {
+  flex: 1;
+}
+
+#infoPanel {
+  width: 320px;
+  border-left: 1px solid #ddd;
+  padding: 10px;
+  display: none;
+  background: #fff;
+}
+
+@media (max-width: 768px) {
   #container {
-    flex: 1;
-    display: flex;
+    flex-direction: column;
   }
+  #infoPanel {
+    width: 100%;
+    height: 40%;
+    border-left: none;
+    border-top: 1px solid #ddd;
+  }
+}
 
-  /* 地図 */
-  #map {
-    flex: 1;
-  }
+/* ===== ピン（Googleマップ風） ===== */
+.pin {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  background: red;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+}
 
-  /* 情報欄 */
-  #info {
-    width: 320px;
-    border-left: 1px solid #ddd;
-    padding: 12px;
-    box-sizing: border-box;
-  }
+.pin::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  margin: 6px 0 0 6px;
+  background: white;
+  position: absolute;
+  border-radius: 50%;
+}
 
-  /* スマホ */
-  @media (max-width: 768px) {
-    #container {
-      flex-direction: column;
-    }
-    #info {
-      width: 100%;
-      border-left: none;
-      border-top: 1px solid #ddd;
-    }
-  }
+.pin span {
+  position: absolute;
+  transform: rotate(45deg);
+  color: white;
+  font-size: 10px;
+  top: 4px;
+  left: 5px;
+}
 
-  .field {
-    margin-bottom: 10px;
-  }
+/* 評価ごとの色 */
+.rate1 { background:#ffd6d6; }
+.rate2 { background:#ffaaaa; }
+.rate3 { background:#ff7a7a; }
+.rate4 { background:#ff4a4a; }
+.rate5 { background:#e60000; }
 
-  .tags span {
-    display: inline-block;
-    padding: 4px 8px;
-    border: 1px solid #ccc;
-    border-radius: 12px;
-    margin: 4px 4px 0 0;
-    font-size: 12px;
-    cursor: pointer;
-  }
+/* ===== 写真 ===== */
+.photo-list {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
 
-  .tags span.active {
-    background: #ffdddd;
-    border-color: #ff6666;
-  }
+.photo-list img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 </style>
 </head>
 
 <body>
 
-<input id="search" placeholder="場所を検索（県・市・町）"/>
+<div id="searchBar">
+  <input id="searchInput" placeholder="場所を検索">
+  <button id="searchBtn">🔍</button>
+</div>
 
 <div id="container">
   <div id="map"></div>
 
-  <div id="info">
-    <div class="field">
-      <label>場所の名前</label><br/>
-      <input type="text" style="width:100%" />
-    </div>
+  <div id="infoPanel">
+    <h3>記録</h3>
 
-    <div class="field">
-      <label>評価</label><br/>
+    <input id="placeName" placeholder="場所の名前" style="width:100%;margin-bottom:6px;">
+
+    <div>
+      評価：
       <select id="rating">
         <option value="1">1</option>
         <option value="2">2</option>
@@ -107,68 +144,112 @@
       </select>
     </div>
 
-    <div class="field">
-      <label>タグ</label>
-      <div class="tags">
-        <span>温泉</span>
-        <span>観光</span>
-        <span>食事</span>
-        <span>自然</span>
-      </div>
+    <div style="margin-top:6px;">
+      タグ：
+      <select id="tag">
+        <option value="♨️">温泉</option>
+        <option value="🍜">ご飯</option>
+        <option value="🏞">自然</option>
+        <option value="🏯">観光</option>
+      </select>
     </div>
 
-    <div class="field">
-      <label>写真</label><br/>
-      <input type="file" />
+    <div style="margin-top:6px;">
+      写真（最大5枚）：
+      <input type="file" id="photoInput" multiple>
+    </div>
+
+    <div class="photo-list" id="photoList"></div>
+
+    <div style="margin-top:10px;">
+      <button id="saveBtn">保存</button>
+      <button id="deleteBtn">削除</button>
     </div>
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  const map = L.map("map").setView([35.6812, 139.7671], 6);
+const map = L.map('map').setView([35.68, 139.76], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap",
-  }).addTo(map);
+let currentMarker = null;
+let photos = [];
 
-  // 評価 → 色の濃さ
-  function pinColor(level) {
-    const colors = {
-      1: "#ffcccc",
-      2: "#ff9999",
-      3: "#ff6666",
-      4: "#ff3333",
-      5: "#cc0000",
+/* 検索 */
+document.getElementById('searchBtn').onclick = async () => {
+  const q = searchInput.value;
+  if (!q) return;
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+  const data = await res.json();
+  if (data[0]) {
+    map.setView([data[0].lat, data[0].lon], 13);
+  }
+};
+
+/* マップクリック */
+map.on('click', e => {
+  openPanel();
+  if (currentMarker) map.removeLayer(currentMarker);
+  currentMarker = createMarker(e.latlng, 3, "📍");
+  currentMarker.addTo(map);
+});
+
+function createMarker(latlng, rate, tag) {
+  return L.marker(latlng, {
+    icon: L.divIcon({
+      className: '',
+      html: `<div class="pin rate${rate}"><span>${tag}</span></div>`,
+      iconSize: [22, 22],
+      iconAnchor: [11, 22]
+    })
+  });
+}
+
+function openPanel() {
+  infoPanel.style.display = "block";
+}
+
+/* 写真追加 */
+photoInput.onchange = e => {
+  for (let f of e.target.files) {
+    if (photos.length >= 5) break;
+    const url = URL.createObjectURL(f);
+    photos.push(url);
+  }
+  renderPhotos();
+};
+
+function renderPhotos() {
+  photoList.innerHTML = '';
+  photos.forEach((src, i) => {
+    const img = document.createElement('img');
+    img.src = src;
+    img.onclick = () => {
+      if (confirm('この写真を削除しますか？')) {
+        photos.splice(i,1);
+        renderPhotos();
+      }
     };
-    return colors[level];
-  }
+    photoList.appendChild(img);
+  });
+}
 
-  function createPin(level, tagIcon = "♨️") {
-    const color = pinColor(level);
+/* 保存 */
+saveBtn.onclick = () => {
+  const rate = rating.value;
+  const tag = document.getElementById('tag').value;
+  map.removeLayer(currentMarker);
+  currentMarker = createMarker(currentMarker.getLatLng(), rate, tag);
+  currentMarker.addTo(map);
+  alert('保存しました');
+};
 
-    return L.divIcon({
-      className: "",
-      iconSize: [32, 48],
-      iconAnchor: [16, 48],
-      html: `
-        <svg width="32" height="48" viewBox="0 0 32 48">
-          <path
-            d="M16 0C7.2 0 0 7.2 0 16c0 12 16 32 16 32s16-20 16-32C32 7.2 24.8 0 16 0z"
-            fill="${color}"
-          />
-          <text x="16" y="22" text-anchor="middle" font-size="14" fill="white">
-            ${tagIcon}
-          </text>
-        </svg>
-      `
-    });
-  }
-
-  const marker = L.marker(
-    [35.6812, 139.7671],
-    { icon: createPin(3) }
-  ).addTo(map);
+/* 削除 */
+deleteBtn.onclick = () => {
+  if (currentMarker) map.removeLayer(currentMarker);
+  infoPanel.style.display = "none";
+};
 </script>
 
 </body>
