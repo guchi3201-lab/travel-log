@@ -1,215 +1,392 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>思い出マップ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>思い出マップ</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
-    body { height: 100vh; display: flex; flex-direction: column; }
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: sans-serif;
+}
 
-    header {
-      height: 56px; display: flex; align-items: center;
-      padding: 0 12px; border-bottom: 1px solid #ddd; background: #fff; z-index: 10;
-    }
-    header h1 { font-size: 18px; margin-right: 12px; white-space: nowrap; }
+#app {
+  display: flex;
+  height: 100%;
+}
 
-    .container { flex: 1; display: flex; overflow: hidden; }
-    #map { flex: 7; }
-    .info { flex: 3; border-left: 1px solid #ddd; padding: 12px; display: none; background: #fafafa; overflow-y: auto; }
-    .info.active { display: block; }
+/* ===== 地図 ===== */
+#map {
+  width: 70%;
+  height: 100%;
+}
 
-    .info h2 { font-size: 16px; margin-bottom: 8px; }
-    .info label { font-size: 13px; margin-top: 10px; display: block; }
-    .info textarea { width: 100%; height: 80px; margin-top: 4px; padding: 6px; font-size: 14px; }
+/* ===== 情報欄 ===== */
+#info {
+  width: 30%;
+  padding: 10px;
+  box-sizing: border-box;
+  border-left: 1px solid #ddd;
+  overflow-y: auto;
+  display: none;
+}
 
-    .photos { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
-    .photos img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 4px; cursor: pointer; }
+h3 {
+  margin-top: 0;
+}
 
-    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-    .tag { font-size: 13px; }
+/* ===== 検索 ===== */
+#search-bar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  width: 90%;
+  max-width: 400px;
+  z-index: 1000;
+}
 
-    .actions { margin-top: 12px; display: flex; gap: 8px; }
-    .actions button { padding: 6px 10px; font-size: 14px; cursor: pointer; }
+#searchInput {
+  flex: 9;
+  padding: 8px;
+}
 
-    /* 画像拡大モーダル */
-    .modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-      display: none; align-items: center; justify-content: center; z-index: 1000;
-    }
-    .modal img { max-width: 90%; max-height: 90%; border-radius: 6px; }
+#searchBtn {
+  flex: 1;
+  font-size: 18px;
+}
 
-    @media (max-width: 768px) {
-      .container { flex-direction: column; }
-      #map { flex: 6; }
-      .info { flex: 4; border-left: none; border-top: 1px solid #ddd; }
-    }
-  </style>
+/* ===== レベル ===== */
+.rating-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.rating-buttons button {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid #e53935;
+  background: white;
+  color: #e53935;
+  font-weight: bold;
+}
+
+.rating-buttons button.active {
+  background: #e53935;
+  color: white;
+}
+
+/* ===== タグ ===== */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tags label {
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ===== 写真 ===== */
+.photo-preview {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.photo-wrapper {
+  position: relative;
+}
+
+.photo-preview img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.photo-delete {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* ===== 写真拡大 ===== */
+#photoModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+#photoModal img {
+  max-width: 90%;
+  max-height: 90%;
+}
+
+#closeModal {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+}
+
+/* ===== ピン ===== */
+.red-pin {
+  background: #e53935;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  position: relative;
+}
+
+.red-pin::after {
+  content: "";
+  width: 40%;
+  height: 40%;
+  background: black;
+  border-radius: 50%;
+  position: absolute;
+  top: 30%;
+  left: 30%;
+}
+
+.glow {
+  animation: sparkle 1.5s infinite;
+}
+
+@keyframes sparkle {
+  0% { box-shadow: 0 0 4px gold; }
+  50% { box-shadow: 0 0 12px gold; }
+  100% { box-shadow: 0 0 4px gold; }
+}
+</style>
 </head>
 
 <body>
-  <header>
-    <h1>思い出</h1>
-  </header>
 
-  <div class="container">
-    <div id="map"></div>
+<div id="search-bar">
+  <input id="searchInput" placeholder="場所を検索" />
+  <button id="searchBtn">🔍</button>
+</div>
 
-    <div class="info" id="info">
-      <h2>思い出情報</h2>
+<div id="app">
+  <div id="map"></div>
 
-      <label>コメント</label>
-      <textarea id="comment"></textarea>
+  <div id="info">
+    <h3>思い出</h3>
 
-      <label>写真（最大5枚）</label>
-      <input type="file" id="photoInput" accept="image/*" multiple />
-      <div class="photos" id="photoList"></div>
+    <p>レベル</p>
+    <div class="rating-buttons" id="rating"></div>
 
-      <label>タグ</label>
-      <div class="tags" id="tagList"></div>
+    <p>タグ</p>
+    <div class="tags" id="tags"></div>
 
-      <div class="actions">
-        <button id="saveBtn">保存</button>
-        <button id="deleteBtn">ピン削除</button>
-      </div>
-    </div>
+    <p>コメント</p>
+    <textarea id="comment" rows="3" style="width:100%"></textarea>
+
+    <p>写真</p>
+    <input type="file" id="photoInput" accept="image/*" multiple />
+    <div class="photo-preview" id="photoPreview"></div>
+
+    <button id="deletePin" style="margin-top:10px;color:red">ピン削除</button>
   </div>
+</div>
 
-  <div class="modal" id="modal">
-    <img id="modalImg" />
-  </div>
+<div id="photoModal">
+  <span id="closeModal">×</span>
+  <img id="modalImage" />
+</div>
 
-  <script>
-    // ---------- データ ----------
-    let memories = JSON.parse(localStorage.getItem("memories") || "[]");
-    let currentMemory = null;
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map("map").setView([35, 135], 5);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-    // ---------- 地図 ----------
-    const map = L.map("map").setView([36.5, 138.0], 5);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+let memories = JSON.parse(localStorage.getItem("memories") || "[]");
+let current = null;
+let markers = [];
 
-    const redIcon = L.icon({
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-      iconSize: [25, 41],
-      iconAnchor: [12, 41]
-    });
+function saveAll() {
+  localStorage.setItem("memories", JSON.stringify(memories));
+}
 
-    const markers = {};
+function createIcon(level) {
+  const size = 18 + level * 6;
+  return L.divIcon({
+    html: `<div class="red-pin ${level==5?'glow':''}" style="width:${size}px;height:${size}px"></div>`,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [size/2, size]
+  });
+}
 
-    // 既存ピン復元
-    memories.forEach(m => addMarker(m));
+function renderMarkers() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
 
-    // 地図タップ → 新規ピン
-    map.on("click", e => {
-      const memory = {
-        id: Date.now().toString(),
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
-        comment: "",
-        photos: [],
-        tags: []
-      };
-      memories.push(memory);
-      addMarker(memory);
-      openInfo(memory);
+  memories.forEach(m => {
+    const marker = L.marker(m.latlng, { icon: createIcon(m.level) }).addTo(map);
+    marker.on("click", () => openInfo(m));
+    markers.push(marker);
+  });
+}
+
+map.on("click", e => {
+  const mem = {
+    latlng: e.latlng,
+    level: 3,
+    tags: [],
+    comment: "",
+    photos: []
+  };
+  memories.push(mem);
+  saveAll();
+  renderMarkers();
+  openInfo(mem);
+});
+
+function openInfo(mem) {
+  current = mem;
+  document.getElementById("info").style.display = "block";
+  document.getElementById("comment").value = mem.comment;
+  renderRating();
+  renderTags();
+  renderPhotos();
+}
+
+function renderRating() {
+  const box = document.getElementById("rating");
+  box.innerHTML = "";
+  for (let i=1;i<=5;i++) {
+    const b = document.createElement("button");
+    b.textContent = i;
+    if (current.level == i) b.classList.add("active");
+    b.onclick = () => {
+      current.level = i;
       saveAll();
-    });
+      renderMarkers();
+      renderRating();
+    };
+    box.appendChild(b);
+  }
+}
 
-    function addMarker(memory) {
-      const marker = L.marker([memory.lat, memory.lng], { icon: redIcon }).addTo(map);
-      marker.on("click", () => openInfo(memory));
-      markers[memory.id] = marker;
-    }
+const tagList = ["♨️温泉","⛩神社","🏯城","⛰山","🌊海","🍜グルメ","🌄絶景"];
+function renderTags() {
+  const box = document.getElementById("tags");
+  box.innerHTML = "";
+  tagList.forEach(t => {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = current.tags.includes(t);
+    cb.onchange = () => {
+      if (cb.checked) current.tags.push(t);
+      else current.tags = current.tags.filter(x=>x!==t);
+      saveAll();
+    };
+    label.append(cb, t);
+    box.appendChild(label);
+  });
+}
 
-    // ---------- 情報欄 ----------
-    const info = document.getElementById("info");
-    const commentEl = document.getElementById("comment");
-    const photoInput = document.getElementById("photoInput");
-    const photoList = document.getElementById("photoList");
-    const tagList = document.getElementById("tagList");
+document.getElementById("comment").oninput = e => {
+  current.comment = e.target.value;
+  saveAll();
+};
 
-    const TAGS = ["温泉","神社","城","山","海","グルメ","絶景"];
-
-    TAGS.forEach(t => {
-      const label = document.createElement("label");
-      label.className = "tag";
-      label.innerHTML = `<input type="checkbox" value="${t}"> ${t}`;
-      tagList.appendChild(label);
-    });
-
-    function openInfo(memory) {
-      currentMemory = memory;
-      info.classList.add("active");
-      commentEl.value = memory.comment || "";
+const photoInput = document.getElementById("photoInput");
+photoInput.onchange = () => {
+  [...photoInput.files].forEach(f => {
+    if (current.photos.length >= 5) return;
+    const r = new FileReader();
+    r.onload = e => {
+      current.photos.push(e.target.result);
+      saveAll();
       renderPhotos();
-      renderTags();
-    }
-
-    function renderPhotos() {
-      photoList.innerHTML = "";
-      currentMemory.photos.forEach((src, idx) => {
-        const img = document.createElement("img");
-        img.src = src;
-        img.onclick = () => openModal(src);
-        photoList.appendChild(img);
-      });
-    }
-
-    function renderTags() {
-      document.querySelectorAll(".tag input").forEach(cb => {
-        cb.checked = currentMemory.tags.includes(cb.value);
-      });
-    }
-
-    // 写真追加
-    photoInput.addEventListener("change", () => {
-      const files = Array.from(photoInput.files).slice(0, 5 - currentMemory.photos.length);
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = e => {
-          currentMemory.photos.push(e.target.result);
-          renderPhotos();
-        };
-        reader.readAsDataURL(file);
-      });
-      photoInput.value = "";
-    });
-
-    // 保存
-    document.getElementById("saveBtn").onclick = () => {
-      currentMemory.comment = commentEl.value;
-      currentMemory.tags = Array.from(document.querySelectorAll(".tag input:checked")).map(cb => cb.value);
-      saveAll();
-      alert("保存しました");
     };
+    r.readAsDataURL(f);
+  });
+  photoInput.value = "";
+};
 
-    // 削除
-    document.getElementById("deleteBtn").onclick = () => {
-      if (!currentMemory) return;
-      map.removeLayer(markers[currentMemory.id]);
-      memories = memories.filter(m => m.id !== currentMemory.id);
-      saveAll();
-      info.classList.remove("active");
+function renderPhotos() {
+  const box = document.getElementById("photoPreview");
+  box.innerHTML = "";
+  current.photos.forEach((src,i) => {
+    const w = document.createElement("div");
+    w.className = "photo-wrapper";
+    const img = document.createElement("img");
+    img.src = src;
+    img.onclick = ()=>openModal(src);
+    const d = document.createElement("div");
+    d.className = "photo-delete";
+    d.textContent = "×";
+    d.onclick = e => {
+      e.stopPropagation();
+      if(confirm("削除しますか？")) {
+        current.photos.splice(i,1);
+        saveAll();
+        renderPhotos();
+      }
     };
+    w.append(img,d);
+    box.appendChild(w);
+  });
+}
 
-    function saveAll() {
-      localStorage.setItem("memories", JSON.stringify(memories));
-    }
+function openModal(src){
+  modalImage.src = src;
+  photoModal.style.display="flex";
+}
 
-    // 画像モーダル
-    const modal = document.getElementById("modal");
-    const modalImg = document.getElementById("modalImg");
-    function openModal(src) {
-      modalImg.src = src;
-      modal.style.display = "flex";
-    }
-    modal.onclick = () => modal.style.display = "none";
-  </script>
+closeModal.onclick = ()=>photoModal.style.display="none";
+
+document.getElementById("deletePin").onclick = ()=>{
+  if(!confirm("このピンを削除しますか？")) return;
+  memories = memories.filter(m=>m!==current);
+  saveAll();
+  document.getElementById("info").style.display="none";
+  renderMarkers();
+};
+
+document.getElementById("searchBtn").onclick = async ()=>{
+  const q = searchInput.value;
+  if(!q) return;
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+  const data = await res.json();
+  if(!data.length) return;
+  map.setView([data[0].lat, data[0].lon], data[0].type==="administrative"?8:12);
+};
+
+renderMarkers();
+</script>
 </body>
 </html>
