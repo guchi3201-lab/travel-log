@@ -4,38 +4,39 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 let memories = JSON.parse(localStorage.getItem("memories") || "[]");
 let current = null;
 
-function icon(name, level) {
-  const size = 20 + level * 4;
+/* ピン生成 */
+function createIcon(rate) {
   return L.divIcon({
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    html: `
-      <div class="pin ${level === 5 ? "rainbow" : ""}">
-        ${name ? `<div class="pin-label">${name}</div>` : ""}
-      </div>
-    `
+    className: "",
+    iconSize: [30, 42],
+    iconAnchor: [15, 42],
+    html: `<div class="pin rate${rate}"></div>`
   });
 }
 
+/* 保存 */
 function saveAll() {
   localStorage.setItem("memories", JSON.stringify(memories));
 }
 
+/* マーカー描画 */
 function renderMarker(m) {
   if (m.marker) map.removeLayer(m.marker);
+
   m.marker = L.marker(m.latlng, {
-    icon: icon(m.name, m.level)
+    icon: createIcon(m.rate)
   }).addTo(map);
+
   m.marker.on("click", () => openInfo(m));
 }
 
+/* 情報欄表示 */
 function openInfo(m) {
   current = m;
   placeName.value = m.name;
-  comment.value = m.comment;
 
-  document.querySelectorAll("[name=level]").forEach(r => {
-    r.checked = r.value == m.level;
+  document.querySelectorAll("[name=rate]").forEach(r => {
+    r.checked = Number(r.value) === m.rate;
   });
 
   document.querySelectorAll("#tags input").forEach(c => {
@@ -45,11 +46,12 @@ function openInfo(m) {
   renderPhotos();
 }
 
+/* 写真表示 */
 function renderPhotos() {
   photos.innerHTML = "";
-  current.photos.forEach((p, i) => {
+  current.photos.forEach((src, i) => {
     const img = document.createElement("img");
-    img.src = p;
+    img.src = src;
     img.className = "photo";
     img.onclick = () => {
       if (confirm("この写真を削除しますか？")) {
@@ -62,13 +64,13 @@ function renderPhotos() {
   });
 }
 
+/* 地図クリックで追加 */
 map.on("click", e => {
   const m = {
     latlng: e.latlng,
     name: "",
-    level: 1,
+    rate: 3,
     tags: [],
-    comment: "",
     photos: []
   };
   memories.push(m);
@@ -77,20 +79,23 @@ map.on("click", e => {
   saveAll();
 });
 
+/* 保存ボタン */
 saveBtn.onclick = () => {
   if (!current) return;
+
   current.name = placeName.value;
-  current.comment = comment.value;
-  current.level = Number(
-    document.querySelector("[name=level]:checked").value
+  current.rate = Number(
+    document.querySelector("[name=rate]:checked").value
   );
   current.tags = [...document.querySelectorAll("#tags input:checked")].map(
     c => c.value
   );
+
   renderMarker(current);
   saveAll();
 };
 
+/* 削除 */
 deleteBtn.onclick = () => {
   if (!current) return;
   map.removeLayer(current.marker);
@@ -99,6 +104,7 @@ deleteBtn.onclick = () => {
   saveAll();
 };
 
+/* 写真追加 */
 photoInput.onchange = e => {
   const files = [...e.target.files].slice(0, 5 - current.photos.length);
   files.forEach(f => {
@@ -112,7 +118,8 @@ photoInput.onchange = e => {
   });
 };
 
-searchBtn.onclick = () => search();
+/* 検索 */
+searchBtn.onclick = search;
 searchInput.onkeydown = e => e.key === "Enter" && search();
 
 function search() {
@@ -122,9 +129,10 @@ function search() {
     .then(r => r.json())
     .then(d => {
       if (d[0]) {
-        map.setView([d[0].lat, d[0].lon], 10);
+        map.setView([d[0].lat, d[0].lon], d[0].type === "administrative" ? 8 : 12);
       }
     });
 }
 
+/* 初期描画 */
 memories.forEach(renderMarker);
