@@ -1,14 +1,11 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>旅行の記録マップ</title>
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
 html, body {
@@ -57,34 +54,32 @@ label {
   margin-top: 8px;
 }
 
-.rating span {
-  border: 1px solid #aaa;
-  padding: 5px;
-  margin-right: 5px;
-  cursor: pointer;
-}
-
-.rating span.active {
-  background: #333;
-  color: white;
-}
-
+.rating span,
 .tags span {
   border: 1px solid #aaa;
   padding: 5px;
   margin: 3px;
-  display: inline-block;
   cursor: pointer;
+  display: inline-block;
 }
 
+.rating span.active,
 .tags span.active {
   background: #555;
   color: white;
 }
 
-button {
-  margin-top: 10px;
-  width: 100%;
+.pin {
+  width: 24px;
+  height: 24px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 1px solid #333;
+}
+
+.rainbow {
+  background: linear-gradient(45deg,
+    red, orange, yellow, green, cyan, blue, violet);
 }
 
 @media (max-width: 768px) {
@@ -103,7 +98,7 @@ button {
 <body>
 
 <div id="searchBar">
-  <input id="searchInput" placeholder="場所検索" />
+  <input id="searchInput" placeholder="場所検索">
   <button id="searchBtn">🔍</button>
 </div>
 
@@ -112,7 +107,7 @@ button {
 
   <div id="info">
     <label>場所名
-      <input id="placeName" />
+      <input id="placeName">
     </label>
 
     <label>評価</label>
@@ -125,33 +120,22 @@ button {
       <textarea id="comment"></textarea>
     </label>
 
-    <label>写真（最大5枚）
-      <input type="file" id="photos" multiple accept="image/*" />
-    </label>
-
     <button onclick="savePin()">保存</button>
-    <button onclick="deletePin()">削除</button>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-const map = L.map('map').setView([35.6586, 139.7454], 6);
+const map = L.map('map').setView([35.6, 139.7], 6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let currentMarker = null;
+let pins = [];
+let tempLatLng = null;
 let selectedRating = 0;
 let selectedTags = [];
 
-const tagList = [
-  { name: "温泉", icon: "♨️" },
-  { name: "グルメ", icon: "🍴" },
-  { name: "山", icon: "⛰" },
-  { name: "海", icon: "🌊" },
-  { name: "城", icon: "🏯" },
-  { name: "絶景", icon: "🌅" }
-];
+const tagList = ["♨️ 温泉","🍴 グルメ","⛰ 山","🌊 海","🏯 城","🌅 絶景"];
 
 // rating
 const ratingDiv = document.getElementById("rating");
@@ -170,7 +154,7 @@ for (let i = 1; i <= 5; i++) {
 const tagDiv = document.getElementById("tags");
 tagList.forEach(t => {
   const s = document.createElement("span");
-  s.textContent = `${t.icon} ${t.name}`;
+  s.textContent = t;
   s.onclick = () => {
     s.classList.toggle("active");
     selectedTags = [...tagDiv.children]
@@ -181,57 +165,50 @@ tagList.forEach(t => {
 });
 
 map.on('click', e => {
-  if (currentMarker) map.removeLayer(currentMarker);
-  currentMarker = L.marker(e.latlng, { icon: pinIcon(1) }).addTo(map);
+  tempLatLng = e.latlng;
 });
 
 function pinIcon(rating) {
-  let color = `rgba(255,0,0,${rating / 5})`;
   if (rating === 5) {
-    color = "linear-gradient(45deg, red, orange, yellow, green, blue, purple)";
+    return L.divIcon({
+      className: '',
+      html: `<div class="pin rainbow"></div>`
+    });
   }
 
   return L.divIcon({
     className: '',
-    html: `
-      <div style="
-        width: 24px;
-        height: 24px;
-        background:${color};
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border:1px solid #333;
-      "></div>`
+    html: `<div class="pin" style="background:rgba(255,0,0,${rating / 5})"></div>`
   });
 }
 
 function savePin() {
-  if (!currentMarker) return;
+  if (!tempLatLng) return;
+
   const data = {
-    latlng: currentMarker.getLatLng(),
+    latlng: tempLatLng,
     name: placeName.value,
     rating: selectedRating,
     tags: selectedTags,
     comment: comment.value
   };
-  localStorage.setItem("travelPin", JSON.stringify(data));
-  alert("保存しました");
+
+  pins.push(data);
+  localStorage.setItem("travelPins", JSON.stringify(pins));
+  drawPins();
 }
 
-function deletePin() {
-  localStorage.removeItem("travelPin");
-  if (currentMarker) map.removeLayer(currentMarker);
-  currentMarker = null;
+function drawPins() {
+  pins.forEach(p => {
+    L.marker(p.latlng, { icon: pinIcon(p.rating) }).addTo(map);
+  });
 }
 
 window.onload = () => {
-  const data = JSON.parse(localStorage.getItem("travelPin"));
-  if (!data) return;
-  currentMarker = L.marker(data.latlng, {
-    icon: pinIcon(data.rating)
-  }).addTo(map);
-  placeName.value = data.name;
-  comment.value = data.comment;
+  const saved = JSON.parse(localStorage.getItem("travelPins"));
+  if (!saved) return;
+  pins = saved;
+  drawPins();
 };
 </script>
 
