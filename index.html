@@ -1,65 +1,175 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>旅行の記録マップ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>旅行記録マップ</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <link rel="stylesheet" href="style.css" />
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    font-family: sans-serif;
+  }
+
+  /* 検索欄（5%） */
+  #search {
+    height: 5vh;
+    padding: 6px 10px;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+  }
+
+  /* 全体 */
+  #container {
+    flex: 1;
+    display: flex;
+  }
+
+  /* 地図 */
+  #map {
+    flex: 1;
+  }
+
+  /* 情報欄 */
+  #info {
+    width: 320px;
+    border-left: 1px solid #ddd;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  /* スマホ */
+  @media (max-width: 768px) {
+    #container {
+      flex-direction: column;
+    }
+    #info {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid #ddd;
+    }
+  }
+
+  .field {
+    margin-bottom: 10px;
+  }
+
+  .tags span {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    margin: 4px 4px 0 0;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .tags span.active {
+    background: #ffdddd;
+    border-color: #ff6666;
+  }
+</style>
 </head>
 
 <body>
-  <!-- 検索バー -->
-  <header>
-    <input id="searchInput" placeholder="場所を検索" />
-    <button id="searchBtn">🔍</button>
-  </header>
 
-  <!-- メイン -->
-  <main>
-    <div id="map"></div>
+<input id="search" placeholder="場所を検索（県・市・町）"/>
 
-    <!-- 情報欄 -->
-    <aside id="info">
-      <h2>旅の記録</h2>
+<div id="container">
+  <div id="map"></div>
 
-      <label>場所名</label>
-      <input id="placeName" placeholder="例：清水寺" />
+  <div id="info">
+    <div class="field">
+      <label>場所の名前</label><br/>
+      <input type="text" style="width:100%" />
+    </div>
 
-      <label>評価</label>
-      <div id="rating">
-        <label><input type="radio" name="rate" value="1">1</label>
-        <label><input type="radio" name="rate" value="2">2</label>
-        <label><input type="radio" name="rate" value="3" checked>3</label>
-        <label><input type="radio" name="rate" value="4">4</label>
-        <label><input type="radio" name="rate" value="5">5</label>
-      </div>
+    <div class="field">
+      <label>評価</label><br/>
+      <select id="rating">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+    </div>
 
+    <div class="field">
       <label>タグ</label>
-      <div id="tags">
-        <label><input type="checkbox" value="onsen">♨️ 温泉</label>
-        <label><input type="checkbox" value="shrine">⛩ 神社</label>
-        <label><input type="checkbox" value="castle">🏯 城</label>
-        <label><input type="checkbox" value="mountain">⛰ 山</label>
-        <label><input type="checkbox" value="sea">🌊 海</label>
-        <label><input type="checkbox" value="food">🍜 グルメ</label>
-        <label><input type="checkbox" value="view">🌅 絶景</label>
+      <div class="tags">
+        <span>温泉</span>
+        <span>観光</span>
+        <span>食事</span>
+        <span>自然</span>
       </div>
+    </div>
 
-      <label>写真（最大5枚）</label>
-      <input type="file" id="photoInput" multiple accept="image/*" />
-      <div id="photos"></div>
+    <div class="field">
+      <label>写真</label><br/>
+      <input type="file" />
+    </div>
+  </div>
+</div>
 
-      <button id="saveBtn">保存</button>
-      <button id="deleteBtn" class="danger">ピン削除</button>
-    </aside>
-  </main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map("map").setView([35.6812, 139.7671], 6);
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="script.js"></script>
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap",
+  }).addTo(map);
+
+  // 評価 → 色の濃さ
+  function pinColor(level) {
+    const colors = {
+      1: "#ffcccc",
+      2: "#ff9999",
+      3: "#ff6666",
+      4: "#ff3333",
+      5: "#cc0000",
+    };
+    return colors[level];
+  }
+
+  function createPin(level, tagIcon = "♨️") {
+    const color = pinColor(level);
+
+    return L.divIcon({
+      className: "",
+      iconSize: [32, 48],
+      iconAnchor: [16, 48],
+      html: `
+        <svg width="32" height="48" viewBox="0 0 32 48">
+          <path
+            d="M16 0C7.2 0 0 7.2 0 16c0 12 16 32 16 32s16-20 16-32C32 7.2 24.8 0 16 0z"
+            fill="${color}"
+          />
+          <text x="16" y="22" text-anchor="middle" font-size="14" fill="white">
+            ${tagIcon}
+          </text>
+        </svg>
+      `
+    });
+  }
+
+  const marker = L.marker(
+    [35.6812, 139.7671],
+    { icon: createPin(3) }
+  ).addTo(map);
+</script>
+
 </body>
 </html>
