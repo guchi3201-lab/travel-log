@@ -1,138 +1,150 @@
-const map = L.map("map").setView([35, 135], 5);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+const map=L.map('map').setView([35,135],5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let memories = JSON.parse(localStorage.getItem("memories") || "[]");
-let current = null;
+let pins=[];
+let current=null;
+let tempLatLng=null;
+let preview=null;
+let photos=[];
+let rate=1;
 
-/* ピン生成 */
-function createIcon(rate) {
+const tagList=["♨️温泉","🍜グルメ","⛰山","🌊海","🏯城","🌄絶景"];
+tagList.forEach(t=>{
+  tags.innerHTML+=`<label><input type="checkbox" value="${t}">${t}</label><br>`;
+});
+
+rateUI.onclick=e=>{
+  if(e.target.dataset.r){
+    rate=e.target.dataset.r;
+    [...rateUI.children].forEach(x=>x.classList.remove("active"));
+    e.target.classList.add("active");
+  }
+};
+
+function pinColor(r){
+  if(r==5) return "#FFD700";
+  return `rgba(255,0,0,${0.25+0.18*r})`;
+}
+
+function createIcon(r){
   return L.divIcon({
-    className: "",
-    iconSize: [30, 42],
-    iconAnchor: [15, 42],
-    html: `<div class="pin rate${rate}"></div>`
+    html:`<div class="pin" style="background:${pinColor(r)}"></div>`,
+    iconSize:[22,22],
+    iconAnchor:[11,22]
   });
 }
 
-/* 保存 */
-function saveAll() {
-  localStorage.setItem("memories", JSON.stringify(memories));
-}
+map.on("click",e=>{
+  tempLatLng=e.latlng;
+  current=null;
 
-/* マーカー描画 */
-function renderMarker(m) {
-  if (m.marker) map.removeLayer(m.marker);
+  if(preview) map.removeLayer(preview);
+  preview=L.marker(e.latlng,{icon:createIcon(1)}).addTo(map);
 
-  m.marker = L.marker(m.latlng, {
-    icon: createIcon(m.rate)
-  }).addTo(map);
+  sidebar.style.display="block";
+});
 
-  m.marker.on("click", () => openInfo(m));
-}
+saveBtn.onclick=()=>{
+  if(!tempLatLng) return;
 
-/* 情報欄表示 */
-function openInfo(m) {
-  current = m;
-  placeName.value = m.name;
+  const data={
+    latlng:tempLatLng,
+    name:placeName.value,
+    comment:comment.value,
+    rate,
+    tags:[...tags.querySelectorAll("input:checked")].map(x=>x.value),
+    photos
+  };
 
-  document.querySelectorAll("[name=rate]").forEach(r => {
-    r.checked = Number(r.value) === m.rate;
+  const m=L.marker(tempLatLng,{icon:createIcon(rate)}).addTo(map);
+  m.on("click",()=>selectPin(m));
+
+  pins.push({marker:m,data});
+  localStorage.setItem("travelPins",JSON.stringify(pins.map(p=>p.data)));
+
+  reset();
+};
+
+deleteBtn.onclick=()=>{
+  if(!current) return;
+  map.removeLayer(current.marker);
+  pins=pins.filter(p=>p!==current);
+  localStorage.setItem("travelPins",JSON.stringify(pins.map(p=>p.data)));
+  reset();
+};
+
+function selectPin(marker){
+  current=pins.find(p=>p.marker===marker);
+  const d=current.data;
+
+  tempLatLng=d.latlng;
+  placeName.value=d.name;
+  comment.value=d.comment;
+  rate=d.rate;
+  photos=d.photos||[];
+
+  [...rateUI.children].forEach(x=>{
+    x.classList.toggle("active",x.dataset.r==rate);
   });
 
-  document.querySelectorAll("#tags input").forEach(c => {
-    c.checked = m.tags.includes(c.value);
+  tags.querySelectorAll("input").forEach(x=>{
+    x.checked=d.tags.includes(x.value);
   });
 
   renderPhotos();
+  sidebar.style.display="block";
 }
 
-/* 写真表示 */
-function renderPhotos() {
-  photos.innerHTML = "";
-  current.photos.forEach((src, i) => {
-    const img = document.createElement("img");
-    img.src = src;
-    img.className = "photo";
-    img.onclick = () => {
-      if (confirm("この写真を削除しますか？")) {
-        current.photos.splice(i, 1);
-        renderPhotos();
-        saveAll();
-      }
-    };
-    photos.appendChild(img);
-  });
+function reset(){
+  placeName.value="";
+  comment.value="";
+  rate=1;
+  photos=[];
+  current=null;
+  tempLatLng=null;
+
+  if(preview){map.removeLayer(preview);preview=null;}
+
+  [...rateUI.children].forEach(x=>x.classList.remove("active"));
+  rateUI.children[0].classList.add("active");
+
+  tags.querySelectorAll("input").forEach(x=>x.checked=false);
+  renderPhotos();
 }
 
-/* 地図クリックで追加 */
-map.on("click", e => {
-  const m = {
-    latlng: e.latlng,
-    name: "",
-    rate: 3,
-    tags: [],
-    photos: []
-  };
-  memories.push(m);
-  renderMarker(m);
-  openInfo(m);
-  saveAll();
-});
-
-/* 保存ボタン */
-saveBtn.onclick = () => {
-  if (!current) return;
-
-  current.name = placeName.value;
-  current.rate = Number(
-    document.querySelector("[name=rate]:checked").value
-  );
-  current.tags = [...document.querySelectorAll("#tags input:checked")].map(
-    c => c.value
-  );
-
-  renderMarker(current);
-  saveAll();
-};
-
-/* 削除 */
-deleteBtn.onclick = () => {
-  if (!current) return;
-  map.removeLayer(current.marker);
-  memories = memories.filter(m => m !== current);
-  current = null;
-  saveAll();
-};
-
-/* 写真追加 */
-photoInput.onchange = e => {
-  const files = [...e.target.files].slice(0, 5 - current.photos.length);
-  files.forEach(f => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      current.photos.push(reader.result);
+photoInput.onchange=e=>{
+  [...e.target.files].slice(0,5-photos.length).forEach(f=>{
+    const r=new FileReader();
+    r.onload=()=>{
+      photos.push(r.result);
       renderPhotos();
-      saveAll();
     };
-    reader.readAsDataURL(f);
+    r.readAsDataURL(f);
   });
 };
 
-/* 検索 */
-searchBtn.onclick = search;
-searchInput.onkeydown = e => e.key === "Enter" && search();
-
-function search() {
-  fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${searchInput.value}`
-  )
-    .then(r => r.json())
-    .then(d => {
-      if (d[0]) {
-        map.setView([d[0].lat, d[0].lon], d[0].type === "administrative" ? 8 : 12);
-      }
-    });
+function renderPhotos(){
+  photosDiv=document.getElementById("photos");
+  photosDiv.innerHTML="";
+  photos.forEach((p,i)=>{
+    photosDiv.innerHTML+=`<img src="${p}" class="photo"
+      onclick="photos.splice(${i},1);renderPhotos()">`;
+  });
 }
 
-/* 初期描画 */
-memories.forEach(renderMarker);
+searchBtn.onclick=()=>{
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchInput.value}`)
+  .then(r=>r.json())
+  .then(d=>{
+    if(d[0]) map.setView([d[0].lat,d[0].lon],11);
+  });
+};
+
+window.onload=()=>{
+  const saved=JSON.parse(localStorage.getItem("travelPins")||"[]");
+  saved.forEach(d=>{
+    const m=L.marker(d.latlng,{icon:createIcon(d.rate)}).addTo(map);
+    m.on("click",()=>selectPin(m));
+    pins.push({marker:m,data:d});
+  });
+};
