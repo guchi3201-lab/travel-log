@@ -1,85 +1,62 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>旅行の思い出マップ</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-html, body {
-  margin: 0;
-  height: 100%;
-  font-family: sans-serif;
+html,body{margin:0;height:100%;font-family:sans-serif;}
+
+#searchBar{
+  height:4%;
+  display:flex;
+  background:#fff;
+  border-bottom:1px solid #ccc;
+}
+#searchInput{flex:1;padding:6px;border:none;}
+#searchBtn{width:10%;border:none;background:#eee;}
+
+#app{display:flex;height:96%;}
+#map{flex:1;}
+
+#sidebar{
+  width:320px;
+  border-left:1px solid #ccc;
+  padding:8px;
+  overflow-y:auto;
+  display:none;
 }
 
-#app {
-  display: flex;
-  height: 100%;
-}
-
-#map {
-  flex: 1;
-}
-
-#sidebar {
-  width: 360px;
-  padding: 10px;
-  border-left: 1px solid #ccc;
-  display: none;
-  overflow-y: auto;
-}
-
-@media (max-width: 768px) {
-  #app {
-    flex-direction: column;
-  }
-  #sidebar {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid #ccc;
-  }
-}
-
-#searchBar {
-  height: 5%;
-  display: flex;
-}
-
-#searchInput {
-  flex: 1;
-  padding: 6px;
-}
-
-button {
-  padding: 6px;
+@media(max-width:768px){
+  #app{flex-direction:column;}
+  #sidebar{width:100%;border-left:none;border-top:1px solid #ccc;height:30%;}
+  #map{height:70%;}
 }
 
 /* ピン */
-.pin {
-  width: 22px;
-  height: 22px;
-  background: red;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
+.pin{
+  width:22px;
+  height:22px;
+  border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg);
 }
 
-/* タグ */
-.tag {
-  display: inline-block;
-  margin: 4px;
+/* 評価UI */
+.rate span{
+  font-size:22px;
+  cursor:pointer;
+  opacity:0.3;
 }
+.rate .active{opacity:1;}
 
-.photo {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  margin: 4px;
-  cursor: pointer;
+.photo{
+  width:60px;height:60px;
+  object-fit:cover;
+  margin:3px;
+  cursor:pointer;
 }
 </style>
 </head>
@@ -87,8 +64,8 @@ button {
 <body>
 
 <div id="searchBar">
-  <input id="searchInput" placeholder="地名・タグで検索">
-  <button onclick="search()">🔍</button>
+  <input id="searchInput" placeholder="地名検索">
+  <button id="searchBtn" onclick="search()">🔍</button>
 </div>
 
 <div id="app">
@@ -97,20 +74,24 @@ button {
   <div id="sidebar">
     <h3>思い出</h3>
 
-    <input id="placeName" placeholder="場所名（例：太宰府天満宮）"><br><br>
+    <input id="placeName" placeholder="場所名"><br><br>
 
     評価：
-    <div id="rating"></div>
+    <div class="rate" id="rateUI">
+      <span data-r="1">🙂</span>
+      <span data-r="2">😊</span>
+      <span data-r="3">😆</span>
+      <span data-r="4">🤩</span>
+      <span data-r="5">👑</span>
+    </div>
 
     <br>タグ：
     <div id="tags"></div>
 
-    <br>
-    コメント：
+    <br>コメント：
     <textarea id="comment" rows="3"></textarea>
 
-    <br><br>
-    写真（最大5枚）：
+    <br><br>写真(最大5枚):
     <input type="file" multiple accept="image/*" onchange="addPhotos(event)">
     <div id="photos"></div>
 
@@ -121,132 +102,142 @@ button {
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
-const map = L.map('map').setView([35, 135], 6);
+const map=L.map('map').setView([35,135],5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let pins = [];
-let currentPin = null;
-let tempLatLng = null;
-let photos = [];
+let pins=[];
+let current=null;
+let tempLatLng=null;
+let photos=[];
+let rate=1;
 
-const tagList = [
-  { key: "温泉", icon: "♨️" },
-  { key: "グルメ", icon: "🍜" },
-  { key: "山", icon: "⛰" },
-  { key: "海", icon: "🌊" },
-  { key: "城", icon: "🏯" },
-  { key: "絶景", icon: "🌄" }
-];
+const tagList=["♨️温泉","🍜グルメ","⛰山","🌊海","🏯城","🌄絶景"];
+tagList.forEach(t=>{
+  tags.innerHTML+=`<label><input type="checkbox" value="${t}">${t}</label><br>`;
+});
 
-const ratingDiv = document.getElementById("rating");
-for (let i = 1; i <= 5; i++) {
-  ratingDiv.innerHTML += `<label>
-    <input type="radio" name="rate" value="${i}">${i}
-  </label>`;
+rateUI.onclick=e=>{
+  if(e.target.dataset.r){
+    rate=e.target.dataset.r;
+    [...rateUI.children].forEach(x=>x.classList.remove("active"));
+    e.target.classList.add("active");
+  }
+};
+
+function pinColor(r){
+  if(r==5)return "#FFD700";
+  return `rgba(255,0,0,${0.25+0.18*r})`;
 }
 
-const tagDiv = document.getElementById("tags");
-tagList.forEach(t => {
-  tagDiv.innerHTML += `<label class="tag">
-    <input type="checkbox" value="${t.key}">${t.icon}${t.key}
-  </label>`;
-});
-
-map.on("click", e => {
-  tempLatLng = e.latlng;
-  openSidebar();
-});
-
-function createIcon(rate) {
+function createIcon(r){
   return L.divIcon({
-    html: `<div class="pin" style="background:rgba(255,0,0,${rate/5})"></div>`,
-    iconSize: [22,22],
-    iconAnchor: [11,22]
+    html:`<div class="pin" style="background:${pinColor(r)}"></div>`,
+    iconSize:[22,22],
+    iconAnchor:[11,22]
   });
 }
 
-function openSidebar() {
-  document.getElementById("sidebar").style.display = "block";
+map.on("click",e=>{
+  tempLatLng=e.latlng;
+  current=null;
+  openSidebar();
+});
+
+function openSidebar(){
+  sidebar.style.display="block";
 }
 
-function savePin() {
-  const rate = document.querySelector('input[name="rate"]:checked')?.value || 1;
-  const tags = [...document.querySelectorAll('#tags input:checked')].map(e=>e.value);
-
-  if (!currentPin) {
-    const marker = L.marker(tempLatLng, { icon: createIcon(rate) }).addTo(map);
-    marker.on("click", () => selectPin(marker));
-    pins.push({ marker, data: {} });
-    currentPin = pins[pins.length - 1];
-  }
-
-  currentPin.data = {
-    latlng: tempLatLng,
-    name: placeName.value,
+function savePin(){
+  const data={
+    latlng:tempLatLng,
+    name:placeName.value,
     rate,
-    tags,
-    comment: comment.value,
+    comment:comment.value,
+    tags:[...tags.querySelectorAll("input:checked")].map(x=>x.value),
     photos
   };
 
-  localStorage.setItem("travelPins", JSON.stringify(pins.map(p=>p.data)));
+  if(!current){
+    const m=L.marker(tempLatLng,{icon:createIcon(rate)}).addTo(map);
+    m.on("click",()=>selectPin(m));
+    pins.push({marker:m,data});
+    current=pins[pins.length-1];
+  }else{
+    current.data=data;
+    current.marker.setIcon(createIcon(rate));
+  }
+
+  localStorage.setItem("travelPins",JSON.stringify(pins.map(p=>p.data)));
 }
 
-function selectPin(marker) {
-  currentPin = pins.find(p => p.marker === marker);
-  const d = currentPin.data;
-  placeName.value = d.name;
-  comment.value = d.comment;
-  photos = d.photos || [];
+function selectPin(marker){
+  current=pins.find(p=>p.marker===marker);
+  const d=current.data;
+
+  placeName.value=d.name;
+  comment.value=d.comment;
+  rate=d.rate;
+  photos=d.photos||[];
+
+  [...rateUI.children].forEach(x=>{
+    x.classList.toggle("active",x.dataset.r==rate);
+  });
+
+  tags.querySelectorAll("input").forEach(x=>{
+    x.checked=d.tags.includes(x.value);
+  });
+
+  renderPhotos();
   openSidebar();
 }
 
-function deletePin() {
-  if (!currentPin) return;
-  map.removeLayer(currentPin.marker);
-  pins = pins.filter(p => p !== currentPin);
-  localStorage.setItem("travelPins", JSON.stringify(pins.map(p=>p.data)));
-  currentPin = null;
-  document.getElementById("sidebar").style.display = "none";
+function deletePin(){
+  if(!current)return;
+  map.removeLayer(current.marker);
+  pins=pins.filter(p=>p!==current);
+  localStorage.setItem("travelPins",JSON.stringify(pins.map(p=>p.data)));
+  sidebar.style.display="none";
+  current=null;
 }
 
-function addPhotos(e) {
-  [...e.target.files].slice(0,5-photos.length).forEach(file => {
-    const r = new FileReader();
-    r.onload = () => {
+function addPhotos(e){
+  [...e.target.files].slice(0,5-photos.length).forEach(f=>{
+    const r=new FileReader();
+    r.onload=()=>{
       photos.push(r.result);
       renderPhotos();
     };
-    r.readAsDataURL(file);
+    r.readAsDataURL(f);
   });
 }
 
-function renderPhotos() {
-  const div = document.getElementById("photos");
-  div.innerHTML = "";
+function renderPhotos(){
+  photosDiv.innerHTML="";
   photos.forEach((p,i)=>{
-    div.innerHTML += `<img src="${p}" class="photo" onclick="photos.splice(${i},1);renderPhotos()">`;
+    photosDiv.innerHTML+=`<img src="${p}" class="photo"
+      onclick="photos.splice(${i},1);renderPhotos()">`;
   });
 }
 
-function search() {
-  const q = searchInput.value;
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`)
-    .then(r=>r.json())
-    .then(d=>{
-      if(d[0]) map.setView([d[0].lat, d[0].lon], 13);
-    });
+function search(){
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchInput.value}`)
+  .then(r=>r.json())
+  .then(d=>{
+    if(d[0])map.setView([d[0].lat,d[0].lon],11);
+  });
 }
 
-window.onload = () => {
-  const saved = JSON.parse(localStorage.getItem("travelPins") || "[]");
+window.onload=()=>{
+  const saved=JSON.parse(localStorage.getItem("travelPins")||"[]");
   saved.forEach(d=>{
-    const m = L.marker(d.latlng,{icon:createIcon(d.rate)}).addTo(map);
-    m.on("click",()=>selectPin({marker:m,data:d}));
+    const m=L.marker(d.latlng,{icon:createIcon(d.rate)}).addTo(map);
+    m.on("click",()=>selectPin(m));
     pins.push({marker:m,data:d});
   });
 };
 </script>
+
 </body>
 </html>
