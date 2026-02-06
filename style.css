@@ -1,118 +1,68 @@
-* {
-  box-sizing: border-box;
+html,body{
+  margin:0;
+  height:100%;
+  font-family:sans-serif;
 }
 
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
+#searchBar{
+  height:4%;
+  display:flex;
+  border-bottom:1px solid #ccc;
 }
 
-/* 検索バー（高さ5%） */
-header {
-  display: flex;
-  height: 5vh;
-  min-height: 44px;
+#searchInput{
+  flex:1;
+  border:none;
+  padding:6px;
 }
 
-header input {
-  flex: 9;
-  padding: 6px;
-  font-size: 16px;
+#searchBtn{
+  width:50px;
+  border:none;
 }
 
-header button {
-  flex: 1;
-  font-size: 18px;
+#app{
+  display:flex;
+  height:96%;
 }
 
-/* レイアウト */
-main {
-  display: flex;
-  height: 95vh;
+#map{flex:1;}
+
+#sidebar{
+  width:320px;
+  border-left:1px solid #ccc;
+  padding:8px;
+  overflow:auto;
+  display:none;
 }
 
-#map {
-  flex: 7;
+@media(max-width:768px){
+  #app{flex-direction:column;}
+  #sidebar{width:100%;height:35%;}
+  #map{height:65%;}
 }
 
-#info {
-  flex: 3;
-  padding: 10px;
-  border-left: 1px solid #ccc;
-  overflow-y: auto;
+.pin{
+  width:22px;
+  height:22px;
+  border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg);
 }
 
-#info h2 {
-  margin-top: 0;
+#rateUI span{
+  font-size:22px;
+  cursor:pointer;
+  opacity:0.3;
 }
 
-textarea,
-input[type="text"] {
-  width: 100%;
+#rateUI .active{
+  opacity:1;
 }
 
-/* 写真 */
-#photos {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.photo {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* 削除 */
-.danger {
-  margin-top: 10px;
-  background: #e74c3c;
-  color: white;
-}
-
-/* ===== ピン（Googleマップ風しずく型） ===== */
-.pin {
-  width: 24px;
-  height: 24px;
-  background: red;
-  border-radius: 50% 50% 50% 50%;
-  position: relative;
-  transform: rotate(-45deg);
-}
-
-.pin::after {
-  content: "";
-  width: 10px;
-  height: 10px;
-  background: white;
-  border-radius: 50%;
-  position: absolute;
-  top: 7px;
-  left: 7px;
-  transform: rotate(45deg);
-}
-
-/* 評価による色の濃淡 */
-.rate1 { background: #ffd6d6; }
-.rate2 { background: #ffaaaa; }
-.rate3 { background: #ff6666; }
-.rate4 { background: #ff3333; }
-.rate5 { background: #b30000; }
-
-/* スマホ */
-@media (max-width: 768px) {
-  main {
-    flex-direction: column;
-  }
-  #map {
-    flex: 6;
-  }
-  #info {
-    flex: 4;
-    border-left: none;
-    border-top: 1px solid #ccc;
-  }
+.photo{
+  width:60px;
+  height:60px;
+  object-fit:cover;
+  margin:3px;
+  cursor:pointer;
 }
