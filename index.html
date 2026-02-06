@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>旅行の思い出マップ</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅行マップ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
@@ -13,11 +13,11 @@ html,body{margin:0;height:100%;font-family:sans-serif;}
 #searchBar{
   height:4%;
   display:flex;
-  background:#fff;
   border-bottom:1px solid #ccc;
+  background:#fff;
 }
-#searchInput{flex:1;padding:6px;border:none;}
-#searchBtn{width:10%;border:none;background:#eee;}
+#searchInput{flex:1;border:none;padding:6px;}
+#searchBtn{width:50px;border:none;background:#eee;}
 
 #app{display:flex;height:96%;}
 #map{flex:1;}
@@ -26,13 +26,13 @@ html,body{margin:0;height:100%;font-family:sans-serif;}
   width:320px;
   border-left:1px solid #ccc;
   padding:8px;
-  overflow-y:auto;
+  overflow:auto;
   display:none;
 }
 
 @media(max-width:768px){
   #app{flex-direction:column;}
-  #sidebar{width:100%;border-left:none;border-top:1px solid #ccc;height:30%;}
+  #sidebar{width:100%;height:30%;border-left:none;border-top:1px solid #ccc;}
   #map{height:70%;}
 }
 
@@ -44,7 +44,6 @@ html,body{margin:0;height:100%;font-family:sans-serif;}
   transform:rotate(-45deg);
 }
 
-/* 評価UI */
 .rate span{
   font-size:22px;
   cursor:pointer;
@@ -74,28 +73,28 @@ html,body{margin:0;height:100%;font-family:sans-serif;}
   <div id="sidebar">
     <h3>思い出</h3>
 
-    <input id="placeName" placeholder="場所名"><br><br>
+    場所名<br>
+    <input id="placeName"><br><br>
 
-    評価：
+    コメント<br>
+    <textarea id="comment" rows="3"></textarea><br><br>
+
+    評価<br>
     <div class="rate" id="rateUI">
       <span data-r="1">🙂</span>
       <span data-r="2">😊</span>
       <span data-r="3">😆</span>
       <span data-r="4">🤩</span>
       <span data-r="5">👑</span>
-    </div>
+    </div><br>
 
-    <br>タグ：
-    <div id="tags"></div>
+    タグ<br>
+    <div id="tags"></div><br>
 
-    <br>コメント：
-    <textarea id="comment" rows="3"></textarea>
-
-    <br><br>写真(最大5枚):
+    写真(最大5枚)<br>
     <input type="file" multiple accept="image/*" onchange="addPhotos(event)">
-    <div id="photos"></div>
+    <div id="photos"></div><br>
 
-    <br>
     <button onclick="savePin()">保存</button>
     <button onclick="deletePin()">削除</button>
   </div>
@@ -110,6 +109,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let pins=[];
 let current=null;
 let tempLatLng=null;
+let previewMarker=null;
 let photos=[];
 let rate=1;
 
@@ -139,9 +139,17 @@ function createIcon(r){
   });
 }
 
+/* タップで即ピン表示 */
 map.on("click",e=>{
   tempLatLng=e.latlng;
   current=null;
+
+  if(previewMarker) map.removeLayer(previewMarker);
+
+  previewMarker=L.marker(e.latlng,{
+    icon:createIcon(1)
+  }).addTo(map);
+
   openSidebar();
 });
 
@@ -169,6 +177,11 @@ function savePin(){
     current.marker.setIcon(createIcon(rate));
   }
 
+  if(previewMarker){
+    map.removeLayer(previewMarker);
+    previewMarker=null;
+  }
+
   localStorage.setItem("travelPins",JSON.stringify(pins.map(p=>p.data)));
 }
 
@@ -176,6 +189,7 @@ function selectPin(marker){
   current=pins.find(p=>p.marker===marker);
   const d=current.data;
 
+  tempLatLng=d.latlng;
   placeName.value=d.name;
   comment.value=d.comment;
   rate=d.rate;
