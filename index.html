@@ -36,7 +36,6 @@ html,body{margin:0;height:100%;font-family:sans-serif;}
   #map{height:70%;}
 }
 
-/* ピン */
 .pin{
   width:22px;
   height:22px;
@@ -139,25 +138,20 @@ function createIcon(r){
   });
 }
 
-/* タップで即ピン表示 */
 map.on("click",e=>{
   tempLatLng=e.latlng;
   current=null;
 
   if(previewMarker) map.removeLayer(previewMarker);
 
-  previewMarker=L.marker(e.latlng,{
-    icon:createIcon(1)
-  }).addTo(map);
+  previewMarker=L.marker(e.latlng,{icon:createIcon(1)}).addTo(map);
 
-  openSidebar();
+  sidebar.style.display="block";
 });
 
-function openSidebar(){
-  sidebar.style.display="block";
-}
-
 function savePin(){
+  if(!tempLatLng) return;
+
   const data={
     latlng:tempLatLng,
     name:placeName.value,
@@ -183,6 +177,24 @@ function savePin(){
   }
 
   localStorage.setItem("travelPins",JSON.stringify(pins.map(p=>p.data)));
+
+  resetForm();
+}
+
+function resetForm(){
+  placeName.value="";
+  comment.value="";
+  rate=1;
+  photos=[];
+  current=null;
+  tempLatLng=null;
+
+  [...rateUI.children].forEach(x=>x.classList.remove("active"));
+  rateUI.children[0].classList.add("active");
+
+  tags.querySelectorAll("input").forEach(x=>x.checked=false);
+
+  renderPhotos();
 }
 
 function selectPin(marker){
@@ -204,7 +216,7 @@ function selectPin(marker){
   });
 
   renderPhotos();
-  openSidebar();
+  sidebar.style.display="block";
 }
 
 function deletePin(){
@@ -212,8 +224,8 @@ function deletePin(){
   map.removeLayer(current.marker);
   pins=pins.filter(p=>p!==current);
   localStorage.setItem("travelPins",JSON.stringify(pins.map(p=>p.data)));
+  resetForm();
   sidebar.style.display="none";
-  current=null;
 }
 
 function addPhotos(e){
@@ -228,9 +240,11 @@ function addPhotos(e){
 }
 
 function renderPhotos(){
-  photosDiv.innerHTML="";
+  photos.innerHTML="";
+  const div=document.getElementById("photos");
+  div.innerHTML="";
   photos.forEach((p,i)=>{
-    photosDiv.innerHTML+=`<img src="${p}" class="photo"
+    div.innerHTML+=`<img src="${p}" class="photo"
       onclick="photos.splice(${i},1);renderPhotos()">`;
   });
 }
